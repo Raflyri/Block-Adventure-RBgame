@@ -1217,6 +1217,7 @@ class UIController {
     this.startOverlay = document.getElementById('start-overlay');
     this.pauseOverlay = document.getElementById('pause-overlay');
     this.gameOverOverlay = document.getElementById('gameover-overlay');
+    this.leaderboardOverlay = document.getElementById('leaderboard-overlay');
 
     this.finalScoreElem = document.getElementById('final-score');
     this.finalLevelElem = document.getElementById('final-level');
@@ -1255,6 +1256,7 @@ class UIController {
     this.startOverlay.classList.remove('hidden');
     this.pauseOverlay.classList.add('hidden');
     this.gameOverOverlay.classList.add('hidden');
+    if (this.leaderboardOverlay) this.leaderboardOverlay.classList.add('hidden');
   }
 
   hideStart() {
@@ -1269,10 +1271,31 @@ class UIController {
     this.pauseOverlay.classList.add('hidden');
   }
 
+  showLeaderboard() {
+    if (this.leaderboardOverlay) this.leaderboardOverlay.classList.remove('hidden');
+  }
+
+  hideLeaderboard() {
+    if (this.leaderboardOverlay) this.leaderboardOverlay.classList.add('hidden');
+  }
+
   showGameOver() {
     this.finalScoreElem.textContent = game.state.score.toLocaleString();
     this.finalLevelElem.textContent = game.state.level;
     this.finalLinesElem.textContent = game.state.linesCleared;
+
+    const nameInput = document.getElementById('player-name-input');
+    if (nameInput) {
+      nameInput.value = localStorage.getItem('rblock_player_name') || '';
+    }
+    const feedbackMsg = document.getElementById('leaderboard-feedback');
+    if (feedbackMsg) feedbackMsg.classList.add('hidden');
+    const submitBtn = document.getElementById('submit-score-btn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Simpan 🏅';
+    }
+
     this.gameOverOverlay.classList.remove('hidden');
   }
 
@@ -1319,36 +1342,100 @@ class UIController {
 }
 
 /* ============================================================================
-   7. CLOUDFLARE WORKERS & KV INTEGRATION HOOK
+   7. CLOUDFLARE PAGES FUNCTIONS & KV GLOBAL LEADERBOARD SERVICE
    ============================================================================ */
-async function submitHighscore(playerName, score) {
-  const sanitizedName = (playerName || 'Star Player').trim().slice(0, 15);
-  const payload = {
-    playerName: sanitizedName,
-    score: score,
-    timestamp: new Date().toISOString()
-  };
+const DEFAULT_LEADERBOARD = [
+  { name: "RB_Master", score: 12500, date: "2026-09-01T12:00:00.000Z" },
+  { name: "CandyQueen", score: 9800, date: "2026-09-02T14:30:00.000Z" },
+  { name: "JellyStar", score: 7450, date: "2026-09-03T09:15:00.000Z" },
+  { name: "SparkyBlock", score: 5200, date: "2026-09-04T08:00:00.000Z" },
+  { name: "ChocoBlast", score: 3800, date: "2026-09-04T11:45:00.000Z" },
+  { name: "LittleGamer", score: 2500, date: "2026-09-04T15:20:00.000Z" },
+  { name: "PixelKid", score: 1600, date: "2026-09-04T16:10:00.000Z" }
+];
 
-  try {
-    const response = await fetch('/api/leaderboard', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[m]));
+}
 
-    if (!response.ok) {
-      throw new Error(`API returned HTTP ${response.status}`);
+class LeaderboardService {
+  static getLocalScores() {
+    try {
+      const data = localStorage.getItem('rblock_leaderboard_local');
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [...DEFAULT_LEADERBOARD];
+  }
+
+  static saveLocalScore(name, score) {
+    const list = this.getLocalScores();
+    list.push({ name, score, date: new Date().toISOString() });
+    list.sort((a, b) => b.score - a.score);
+    const trimmed = list.slice(0, 50);
+    try {
+      localStorage.setItem('rblock_leaderboard_local', JSON.stringify(trimmed));
+    } catch (e) {}
+    return trimmed;
+  }
+
+  static async fetchScores() {
+    try {
+      const response = await fetch('/api/leaderboard', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.leaderboard)) {
+          return data.leaderboard;
+        }
+      }
+    } catch (err) {
+      // Local fallback (e.g. running on simple http server or offline)
+    }
+    return this.getLocalScores().slice(0, 10);
+  }
+
+  static async submitScore(playerName, score) {
+    const sanitizedName = (playerName || 'Player').trim().slice(0, 12);
+    try {
+      localStorage.setItem('rblock_player_name', sanitizedName);
+    } catch (e) {}
+
+    // Always persist in local storage fallback
+    this.saveLocalScore(sanitizedName, score);
+
+    try {
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: sanitizedName, score: score })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          success: true,
+          rank: data.rank,
+          message: data.message || `Luar biasa! Skor ${sanitizedName} tersimpan di Cloudflare KV! 🌟`
+        };
+      }
+    } catch (err) {
+      // Network/local server fallback
     }
 
-    const data = await response.json();
     return {
       success: true,
-      message: data.message || `Hooray! ${sanitizedName} joined the Star Hall of Fame! 🌟`
-    };
-  } catch (err) {
-    return {
-      success: true,
-      message: `Yay! Score recorded for ${sanitizedName}! 🎈 (Connect Cloudflare Worker + KV for global ranking)`
+      message: `Yay! Skor ${score} dicatat untuk ${sanitizedName}! ⭐ (Tersimpan di rekor lokal)`
     };
   }
 }
@@ -1621,10 +1708,20 @@ class RBlockGame {
           case 'M':
             this.toggleAudio();
             break;
+          case 'l':
+          case 'L':
+            this.openLeaderboard();
+            break;
         }
       } else if (this.state.status === GameStatus.PAUSED) {
-        if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        if (e.key === 'p' || e.key === 'P') {
           this.resume();
+        } else if (e.key === 'Escape') {
+          if (this.ui.leaderboardOverlay && !this.ui.leaderboardOverlay.classList.contains('hidden')) {
+            this.closeLeaderboard();
+          } else {
+            this.resume();
+          }
         }
       }
     });
@@ -1639,6 +1736,26 @@ class RBlockGame {
 
     const audioBtn = document.getElementById('audio-toggle-btn');
     audioBtn.addEventListener('click', () => this.toggleAudio());
+
+    const leaderboardBtn = document.getElementById('leaderboard-btn');
+    if (leaderboardBtn) {
+      leaderboardBtn.addEventListener('click', () => this.openLeaderboard());
+    }
+
+    const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
+    if (closeLeaderboardBtn) {
+      closeLeaderboardBtn.addEventListener('click', () => this.closeLeaderboard());
+    }
+
+    const refreshLeaderboardBtn = document.getElementById('refresh-leaderboard-btn');
+    if (refreshLeaderboardBtn) {
+      refreshLeaderboardBtn.addEventListener('click', () => this.loadAndRenderLeaderboard());
+    }
+
+    const viewFromGameOverBtn = document.getElementById('view-leaderboard-from-gameover-btn');
+    if (viewFromGameOverBtn) {
+      viewFromGameOverBtn.addEventListener('click', () => this.openLeaderboard());
+    }
 
     // Mobile Touch Buttons (for hybrid control: buttons + screen drag)
     const bindTouch = (id, action) => {
@@ -1673,17 +1790,75 @@ class RBlockGame {
     submitBtn.addEventListener('click', async () => {
       const name = nameInput.value.trim() || 'Hero Player';
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Saving... ✨';
+      submitBtn.textContent = 'Menyimpan... ✨';
 
       feedbackMsg.className = 'status-msg';
-      feedbackMsg.textContent = 'Connecting to Star Leaderboard...';
+      feedbackMsg.textContent = 'Menghubungkan ke Cloudflare KV...';
       feedbackMsg.classList.remove('hidden');
 
-      const result = await submitHighscore(name, this.state.score);
+      const result = await LeaderboardService.submitScore(name, this.state.score);
 
       feedbackMsg.textContent = result.message;
       feedbackMsg.classList.add(result.success ? 'success' : 'error');
-      submitBtn.textContent = 'Saved! ⭐';
+      submitBtn.textContent = 'Tersimpan! ⭐';
+    });
+  }
+
+  async openLeaderboard() {
+    if (this.state.status === GameStatus.PLAYING) {
+      this.pause();
+    }
+    this.ui.showLeaderboard();
+    await this.loadAndRenderLeaderboard();
+  }
+
+  closeLeaderboard() {
+    this.ui.hideLeaderboard();
+  }
+
+  async loadAndRenderLeaderboard() {
+    const listElem = document.getElementById('leaderboard-list');
+    const loadingElem = document.getElementById('leaderboard-loading');
+    if (loadingElem) loadingElem.classList.remove('hidden');
+    if (listElem) listElem.innerHTML = '';
+
+    const scores = await LeaderboardService.fetchScores();
+
+    if (loadingElem) loadingElem.classList.add('hidden');
+    if (!listElem) return;
+
+    listElem.innerHTML = '';
+    scores.forEach((entry, index) => {
+      const rank = index + 1;
+      const li = document.createElement('li');
+      li.className = `leaderboard-item rank-${rank <= 3 ? rank : 'rest'}`;
+
+      let rankBadge = `#${rank}`;
+      if (rank === 1) rankBadge = '🥇';
+      else if (rank === 2) rankBadge = '🥈';
+      else if (rank === 3) rankBadge = '🥉';
+
+      let dateStr = 'Top Rekor';
+      if (entry.date) {
+        try {
+          const d = new Date(entry.date);
+          dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        } catch (e) {}
+      }
+
+      li.innerHTML = `
+        <div class="item-left">
+          <span class="rank-badge">${rankBadge}</span>
+          <div class="player-details">
+            <span class="player-name-text">${escapeHtml(entry.name || 'Hero Player')}</span>
+            <span class="player-date-text">${dateStr}</span>
+          </div>
+        </div>
+        <div class="item-right">
+          <span class="player-score-text">${Number(entry.score || 0).toLocaleString()}</span>
+        </div>
+      `;
+      listElem.appendChild(li);
     });
   }
 

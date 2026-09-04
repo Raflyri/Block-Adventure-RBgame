@@ -54,8 +54,11 @@
   - Proyeksi bayangan balok (*ghost piece*) untuk melihat titik jatuh sebelum mendarat.
   - Fitur simpan balok cadangan (*Pocket / Hold*).
 
-- ☁️ **Cloudflare Workers & KV Ready**:
-  - Fungsi asynchronous `submitHighscore(playerName, score)` siap pakai yang melakukan `POST` ke endpoint `/api/leaderboard` untuk integrasi database Cloudflare Workers + KV.
+- 🏆 **Global Leaderboard (Cloudflare Pages Functions + Cloudflare KV)**:
+  - Rekor skor pemain di seluruh dunia tersimpan secara persisten di database serverless **Cloudflare KV (`LEADERBOARD_KV`)**.
+  - Modal **Global Hall of Fame** dengan medali piala (🥇 Juara 1, 🥈 Juara 2, 🥉 Juara 3), tanggal rekor, dan tombol refresh *real-time*.
+  - Input nama pemain interaktif saat Game Over yang otomatis mengingat nama pemain sebelumnya.
+  - *Smart Local Fallback*: tetap berjalan mulus dengan data cadangan saat dimainkan secara lokal (*offline/localhost*).
 
 ---
 
@@ -145,7 +148,16 @@ Game ini siap di-deploy secara instan (*Zero-Config*):
    - Isi **Build output directory** dengan `/` (atau biarkan *root*).
    - Klik **Save and Deploy**.
 
-2. **Melalui Wrangler CLI**:
+2. **Menghubungkan Database Cloudflare KV (Untuk Global Leaderboard)**:
+   - Di Cloudflare Dashboard, buka **Workers & Pages > KV**.
+   - Buat KV Namespace baru: `RBLOCK_LEADERBOARD`.
+   - Buka proyek Pages Anda > **Settings > Functions > KV namespace bindings**.
+   - Tambahkan binding:
+     - **Variable name**: `LEADERBOARD_KV`
+     - **KV namespace**: `RBLOCK_LEADERBOARD`
+   - Klik **Save**. Rekor pemain di seluruh dunia kini tersimpan permanen!
+
+3. **Melalui Wrangler CLI**:
    ```bash
    npx wrangler pages deploy . --project-name=rblock-adventure
    ```
@@ -156,11 +168,15 @@ Game ini siap di-deploy secara instan (*Zero-Config*):
 
 ```
 rblock-adventure/
-├── index.html       # Struktur semantik HTML5, UI Overlays, & wadah responsif
-├── style.css        # Sistem desain CSS3 adaptif, animasi getar, & tata letak modern
-├── script.js        # Engine RBlock, Gesture Touch Engine, Candy Bomb, & SFX Synthesizer
-├── .gitignore       # Daftar berkas yang diabaikan oleh Git
-└── README.md        # Dokumentasi resmi proyek
+├── functions/
+│   └── api/
+│       └── leaderboard.js # Serverless Cloudflare Pages Function (KV API)
+├── index.html             # Struktur semantik HTML5, UI Overlays, & Leaderboard Modal
+├── style.css              # Sistem desain CSS3 adaptif, tema jelly, & modal ranking
+├── script.js              # Engine RBlock, Touch Gestures, Candy Bomb, & Leaderboard Service
+├── RELEASE_NOTES.md       # Catatan riwayat pembaruan (Changelog) lengkap
+├── .gitignore             # Daftar berkas yang diabaikan oleh Git
+└── README.md              # Dokumentasi resmi proyek
 ```
 
 ---

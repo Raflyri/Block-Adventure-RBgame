@@ -56,6 +56,15 @@
 
         <div class="header-actions">
           <button
+            id="leaderboard-btn"
+            class="candy-btn icon-btn"
+            title="Global Leaderboard (L)"
+            aria-label="Global Leaderboard"
+          >
+            <span class="btn-icon">🏆</span>
+            <span class="btn-label">Top 10</span>
+          </button>
+          <button
             id="audio-toggle-btn"
             class="candy-btn icon-btn"
             title="Toggle Sound (M)"
@@ -247,16 +256,20 @@
                     <input
                       type="text"
                       id="player-name-input"
-                      placeholder="Your Hero Name"
-                      maxlength="15"
+                      placeholder="Nama Kamu"
+                      maxlength="12"
                       autocomplete="off"
                     />
                     <button id="submit-score-btn" class="action-btn">
-                      Save! 🏅
+                      Simpan 🏅
                     </button>
                   </div>
                   <p id="leaderboard-feedback" class="status-msg hidden"></p>
                 </div>
+
+                <button id="view-leaderboard-from-gameover-btn" class="candy-btn-secondary" style="margin-bottom: 10px; width: 100%;">
+                  🏆 Lihat Rekor Dunia
+                </button>
 
                 <button id="play-again-btn" class="play-big-btn wobble-hover">
                   PLAY AGAIN! 🎈
@@ -384,6 +397,34 @@
           </button>
         </div>
       </section>
+
+      <!-- UI Overlay: Global Leaderboard Modal (Fixed Viewport Level) -->
+      <div id="leaderboard-overlay" class="overlay hidden">
+        <div class="overlay-content candy-modal bounce-in leaderboard-modal-box">
+          <div class="mascot-face">🏆</div>
+          <div class="modal-badge">GLOBAL HALL OF FAME</div>
+          <h2 class="overlay-title">Star Champions</h2>
+          <p class="overlay-desc">Rekor skor tertinggi pemain RBlock di seluruh dunia!</p>
+
+          <div class="leaderboard-table-container">
+            <div id="leaderboard-loading" class="leaderboard-loading hidden">
+              <span class="spinner">💫</span> Memuat rekor dunia...
+            </div>
+            <ul id="leaderboard-list" class="leaderboard-list">
+              <!-- Populated by JavaScript -->
+            </ul>
+          </div>
+
+          <div class="modal-actions leaderboard-actions">
+            <button id="refresh-leaderboard-btn" class="candy-btn-secondary">
+              🔄 Refresh
+            </button>
+            <button id="close-leaderboard-btn" class="play-big-btn">
+              Tutup ✨
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Footer -->
       <footer class="app-footer">
