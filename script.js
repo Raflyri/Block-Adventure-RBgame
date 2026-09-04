@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * WebTetris Edge - Fun Responsive Child-Friendly Edition
- * Enhanced with Candy Bomb, Block Shatter VFX, Screen Shake & Arcade Audio
+ * Enhanced with 1x1 Tactical Candy Bomb, Dynamic Fuse Timer, & Block Shatter VFX
  * ============================================================================
  */
 
@@ -13,7 +13,7 @@
 const COLS = 10;
 const ROWS = 20;
 
-// Cheerful Candy-Colored Tetrominoes + Special Candy Bomb
+// Cheerful Candy-Colored Tetrominoes + 1x1 Tactical Candy Bomb
 const TETROMINOES = {
   I: {
     shape: [
@@ -79,9 +79,9 @@ const TETROMINOES = {
     highlight: '#fecdd3'
   },
   BOMB: {
+    // 1x1 Compact Tactical Bomb Block
     shape: [
-      [1, 1],
-      [1, 1]
+      [1]
     ],
     color: '#ff2a2a',
     highlight: '#ff9999',
@@ -107,7 +107,7 @@ const GameStatus = {
 };
 
 /* ============================================================================
-   2. PUNCHY ARCADE AUDIO SYNTHESIZER (Noise Explosions, Chimes, & Shatter)
+   2. PUNCHY ARCADE AUDIO SYNTHESIZER
    ============================================================================ */
 class PlayfulAudio {
   constructor() {
@@ -180,7 +180,6 @@ class PlayfulAudio {
   }
 
   playHardDrop() {
-    // Deep thud with punchy transient
     this.playChime(150, 0.15, 'triangle', 0.18);
     this.playChime(80, 0.2, 'sine', 0.2);
   }
@@ -190,13 +189,19 @@ class PlayfulAudio {
     setTimeout(() => this.playChime(620, 0.09, 'sine', 0.08), 40);
   }
 
+  // Ticking bomb fuse sound effect
+  playFuseTick(isUrgent = false) {
+    if (this.muted || !this.ctx) return;
+    const freq = isUrgent ? 880 : 520;
+    this.playChime(freq, 0.04, 'triangle', isUrgent ? 0.1 : 0.06);
+  }
+
   // Deep booming explosion with noise crackle
   playExplosion() {
     if (this.muted || !this.ctx) return;
     try {
       const now = this.ctx.currentTime;
 
-      // 1. Sub-bass boom oscillator
       const subOsc = this.ctx.createOscillator();
       const subGain = this.ctx.createGain();
       subOsc.type = 'sawtooth';
@@ -211,7 +216,6 @@ class PlayfulAudio {
       subOsc.start(now);
       subOsc.stop(now + 0.5);
 
-      // 2. Filtered noise blast
       if (this.noiseBuffer) {
         const noise = this.ctx.createBufferSource();
         noise.buffer = this.noiseBuffer;
@@ -235,7 +239,6 @@ class PlayfulAudio {
     } catch (e) {}
   }
 
-  // Crystalline shattering sound effect for clearing blocks
   playShatter() {
     if (this.muted || !this.ctx) return;
     const freqs = [1200, 1650, 2100, 2800];
@@ -272,7 +275,7 @@ class PlayfulAudio {
 const sfx = new PlayfulAudio();
 
 /* ============================================================================
-   3. CELEBRATION & EXPLOSION PARTICLES SYSTEM (Debris, Shockwaves, Sparks)
+   3. CELEBRATION & EXPLOSION PARTICLES SYSTEM
    ============================================================================ */
 class ParticleSystem {
   constructor(canvas) {
@@ -289,7 +292,6 @@ class ParticleSystem {
     this.ctx.scale(dpr, dpr);
   }
 
-  // Shattered block debris flying with physics & rotation
   spawnLineBurst(rowY, blockSize, rowColors = []) {
     const yPos = rowY * blockSize + blockSize / 2;
     const count = 35;
@@ -315,29 +317,26 @@ class ParticleSystem {
     }
   }
 
-  // Giant Bomb Explosion with shockwave, fiery sparks, and smoke
   spawnBombExplosion(centerX, centerY) {
-    // 1. Expanding Shockwave Ring
     this.shockwaves.push({
       x: centerX,
       y: centerY,
-      radius: 10,
-      maxRadius: 130,
+      radius: 8,
+      maxRadius: 110,
       alpha: 1,
-      speed: 8
+      speed: 7
     });
 
-    // 2. High-speed Fiery Sparks (Orange, Red, Yellow, White)
     const fireColors = ['#ff2a2a', '#ff7b00', '#ffbe0b', '#ffffff', '#ff4d6d'];
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 55; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 9 + 3;
+      const speed = Math.random() * 8 + 3;
       this.particles.push({
         x: centerX,
         y: centerY,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: Math.random() * 7 + 4,
+        size: Math.random() * 6 + 3,
         color: fireColors[Math.floor(Math.random() * fireColors.length)],
         rotation: Math.random() * Math.PI * 2,
         vRot: (Math.random() - 0.5) * 0.4,
@@ -348,17 +347,16 @@ class ParticleSystem {
       });
     }
 
-    // 3. Cartoon Smoke Puffs (translucent purple/gray)
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 12; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 2 + 1;
+      const speed = Math.random() * 2 + 0.8;
       this.particles.push({
-        x: centerX + (Math.random() - 0.5) * 20,
-        y: centerY + (Math.random() - 0.5) * 20,
+        x: centerX + (Math.random() - 0.5) * 16,
+        y: centerY + (Math.random() - 0.5) * 16,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 0.8,
-        size: Math.random() * 16 + 10,
-        color: 'rgba(230, 210, 255, 0.45)',
+        vy: Math.sin(angle) * speed - 0.6,
+        size: Math.random() * 14 + 8,
+        color: 'rgba(230, 210, 255, 0.4)',
         rotation: Math.random() * Math.PI * 2,
         vRot: (Math.random() - 0.5) * 0.1,
         alpha: 0.8,
@@ -391,7 +389,6 @@ class ParticleSystem {
   updateAndDraw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // 1. Draw and update Shockwaves
     for (let i = this.shockwaves.length - 1; i >= 0; i--) {
       const sw = this.shockwaves[i];
       sw.radius += sw.speed;
@@ -405,11 +402,10 @@ class ParticleSystem {
       this.ctx.save();
       this.ctx.beginPath();
       this.ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
-      this.ctx.lineWidth = Math.max(2, (1 - sw.radius / sw.maxRadius) * 8);
+      this.ctx.lineWidth = Math.max(2, (1 - sw.radius / sw.maxRadius) * 7);
       this.ctx.strokeStyle = `rgba(255, 220, 100, ${sw.alpha})`;
       this.ctx.stroke();
 
-      // Second soft outer ring
       this.ctx.beginPath();
       this.ctx.arc(sw.x, sw.y, sw.radius * 0.85, 0, Math.PI * 2);
       this.ctx.lineWidth = 3;
@@ -418,14 +414,13 @@ class ParticleSystem {
       this.ctx.restore();
     }
 
-    // 2. Draw and update Particles
     if (this.particles.length === 0) return;
 
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += p.type === 'smoke' ? -0.05 : 0.18; // Gravity (smoke floats up)
+      p.vy += p.type === 'smoke' ? -0.05 : 0.18;
       p.rotation += p.vRot;
       p.alpha -= p.decay;
 
@@ -440,7 +435,6 @@ class ParticleSystem {
       this.ctx.rotate(p.rotation);
 
       if (p.type === 'smoke') {
-        // Soft round smoke puff
         this.ctx.fillStyle = p.color;
         this.ctx.beginPath();
         this.ctx.arc(0, 0, p.size, 0, Math.PI * 2);
@@ -448,7 +442,6 @@ class ParticleSystem {
       } else if (p.isStar) {
         this.drawStar(this.ctx, 0, 0, 5, p.size, p.size / 2, p.color);
       } else {
-        // Sharp shattered debris block
         this.ctx.fillStyle = p.color;
         this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
       }
@@ -484,7 +477,7 @@ class ParticleSystem {
 }
 
 /* ============================================================================
-   4. LOGICAL GAME STATE (7-Bag + Special Bomb Piece & Explosion Radius)
+   4. LOGICAL GAME STATE (1x1 Tactical Bomb & Level-based Fuse Countdown)
    ============================================================================ */
 class GameState {
   constructor() {
@@ -502,7 +495,12 @@ class GameState {
     this.status = GameStatus.IDLE;
 
     this.bag = [];
-    this.pieceCounter = 0;
+    this.piecesSinceLastBomb = 0;
+
+    // Bomb Fuse Timer State
+    this.bombFuseDuration = 8000;
+    this.bombFuseRemaining = 8000;
+    this.lastTickSecond = 8;
   }
 
   createEmptyBoard() {
@@ -530,25 +528,53 @@ class GameState {
   reset() {
     this.board = this.createEmptyBoard();
     this.bag = [];
-    this.pieceCounter = 0;
+    this.piecesSinceLastBomb = 0;
     this.comboStreak = 0;
-    this.currentPiece = this.getNewPiece();
-    this.nextPiece = this.getNewPiece();
-    this.holdPiece = null;
-    this.canHold = true;
     this.score = 0;
     this.level = 1;
     this.linesCleared = 0;
     this.status = GameStatus.PLAYING;
+
+    this.currentPiece = this.getNewPiece();
+    this.nextPiece = this.getNewPiece();
+    this.holdPiece = null;
+    this.canHold = true;
+
+    this.initBombFuseIfActive();
   }
 
-  // 7-Bag Randomizer with ~12% Special Bomb Piece Event
-  getNextPieceType() {
-    this.pieceCounter++;
+  // Calculate dynamic fuse timer based on level:
+  // Level 1: 8.0s, Level 2: 6.5s, Level 3: 5.0s, Level 4: 4.0s, Level 5+: 3.0s - 2.5s
+  getBombFuseDurationForLevel(level) {
+    switch (level) {
+      case 1: return 8000;
+      case 2: return 6500;
+      case 3: return 5000;
+      case 4: return 4000;
+      default: return Math.max(2500, 3500 - (level - 5) * 200);
+    }
+  }
 
-    // Every 8th piece OR 12% probability spawns a SPECIAL CANDY BOMB!
-    if (this.pieceCounter > 3 && (this.pieceCounter % 8 === 0 || Math.random() < 0.12)) {
-      return 'BOMB';
+  initBombFuseIfActive() {
+    if (this.currentPiece && this.currentPiece.isBomb) {
+      this.bombFuseDuration = this.getBombFuseDurationForLevel(this.level);
+      this.bombFuseRemaining = this.bombFuseDuration;
+      this.lastTickSecond = Math.ceil(this.bombFuseRemaining / 1000);
+      sfx.playFuseTick(false);
+    }
+  }
+
+  // Spawn logic: controlled rare frequency (every 18-24 pieces)
+  getNextPieceType() {
+    this.piecesSinceLastBomb++;
+
+    // Only allow Bomb after at least 16 pieces, with guaranteed spawn at 24 pieces
+    if (this.piecesSinceLastBomb >= 16) {
+      const chance = this.piecesSinceLastBomb >= 24 ? 1.0 : 0.25;
+      if (Math.random() < chance) {
+        this.piecesSinceLastBomb = 0;
+        return 'BOMB';
+      }
     }
 
     if (this.bag.length === 0) {
@@ -620,7 +646,7 @@ class GameState {
 
   rotateCurrentPiece() {
     if (!this.currentPiece || this.status !== GameStatus.PLAYING) return false;
-    // Don't rotate O-piece or 2x2 Bomb
+    // Don't rotate O-piece or 1x1 Bomb
     if (this.currentPiece.type === 'O' || this.currentPiece.isBomb) return false;
 
     const originalMatrix = this.currentPiece.matrix;
@@ -682,7 +708,7 @@ class GameState {
     this.score += dropDistance * 2;
     this.saveHighScore();
     sfx.playHardDrop();
-    game.triggerScreenShake(false); // Soft shake on hard drop
+    game.triggerScreenShake(false);
     this.lockCurrentPiece();
   }
 
@@ -712,6 +738,7 @@ class GameState {
     }
 
     this.canHold = false;
+    this.initBombFuseIfActive();
   }
 
   getGhostPosition() {
@@ -730,9 +757,8 @@ class GameState {
   }
 
   lockCurrentPiece() {
-    // SPECIAL BOMB EXPLOSION BEHAVIOR
     if (this.currentPiece.isBomb) {
-      this.detonateBomb(this.currentPiece.x + 1, this.currentPiece.y + 1);
+      this.detonateBomb(this.currentPiece.x, this.currentPiece.y);
       return;
     }
 
@@ -771,23 +797,24 @@ class GameState {
     this.currentPiece = this.nextPiece;
     this.nextPiece = this.getNewPiece();
     this.canHold = true;
+    this.initBombFuseIfActive();
 
     if (this.checkCollision(this.currentPiece, 0, 0)) {
       this.gameOver();
     }
   }
 
-  // 3x3 Bomb Detonation Mechanism
+  // 1x1 Bomb Detonation (Radius 3x3 surrounding grid)
   detonateBomb(centerX, centerY) {
     sfx.playExplosion();
     game.triggerScreenShake(true);
 
-    const pixelX = centerX * game.renderer.blockSize;
-    const pixelY = centerY * game.renderer.blockSize;
+    const pixelX = centerX * game.renderer.blockSize + game.renderer.blockSize / 2;
+    const pixelY = centerY * game.renderer.blockSize + game.renderer.blockSize / 2;
     particles.spawnBombExplosion(pixelX, pixelY);
 
     let destroyedCount = 0;
-    const radius = 2; // Clears 5x5 or 3x3 surrounding grid
+    const radius = 1; // 1 cell in all directions = 3x3 grid
 
     for (let r = centerY - radius; r <= centerY + radius; r++) {
       for (let c = centerX - radius; c <= centerX + radius; c++) {
@@ -800,26 +827,23 @@ class GameState {
       }
     }
 
-    // Drop blocks down above cleared bomb explosion area
     this.collapseFloatingBlocks();
 
-    // Award big explosion blast points
-    const blastBonus = 250 + destroyedCount * 40;
+    const blastBonus = 250 + destroyedCount * 45;
     this.score += blastBonus;
     this.saveHighScore();
     ui.triggerBombBanner(blastBonus, destroyedCount);
 
-    // Spawn next piece
     this.currentPiece = this.nextPiece;
     this.nextPiece = this.getNewPiece();
     this.canHold = true;
+    this.initBombFuseIfActive();
 
     if (this.checkCollision(this.currentPiece, 0, 0)) {
       this.gameOver();
     }
   }
 
-  // Gravity collapse after bomb crater
   collapseFloatingBlocks() {
     for (let c = 0; c < COLS; c++) {
       let emptyY = ROWS - 1;
@@ -862,7 +886,7 @@ class GameState {
 }
 
 /* ============================================================================
-   5. RESPONSIVE CANVAS RENDERER (Fluid Scaling & Animated Bomb Glow)
+   5. RESPONSIVE CANVAS RENDERER
    ============================================================================ */
 class ResponsiveCanvasRenderer {
   constructor(container, canvas, nextCanvas, holdCanvas, holdCanvasMobile) {
@@ -945,7 +969,7 @@ class ResponsiveCanvasRenderer {
       }
 
       if (gameState.currentPiece) {
-        this.drawPiece(gameState.currentPiece, this.ctx, this.blockSize);
+        this.drawPiece(gameState.currentPiece, this.ctx, this.blockSize, gameState);
       }
     }
 
@@ -991,13 +1015,14 @@ class ResponsiveCanvasRenderer {
     }
   }
 
-  drawPiece(piece, context, size) {
+  drawPiece(piece, context, size, gameState = null) {
     const { matrix, x, y, color, isBomb } = piece;
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c] !== 0) {
           if (isBomb) {
-            this.drawBombBlock(context, (x + c) * size, (y + r) * size, size);
+            const fuseSec = gameState ? (gameState.bombFuseRemaining / 1000).toFixed(1) : null;
+            this.draw1x1BombBlock(context, (x + c) * size, (y + r) * size, size, fuseSec);
           } else {
             this.drawCandyBlock(context, (x + c) * size, (y + r) * size, size, color);
           }
@@ -1011,7 +1036,7 @@ class ResponsiveCanvasRenderer {
     this.ctx.save();
     this.ctx.strokeStyle = isBomb ? '#ff2a2a' : color;
     this.ctx.lineWidth = 1.5;
-    this.ctx.fillStyle = isBomb ? 'rgba(255, 42, 42, 0.12)' : 'rgba(255, 255, 255, 0.06)';
+    this.ctx.fillStyle = isBomb ? 'rgba(255, 42, 42, 0.15)' : 'rgba(255, 255, 255, 0.06)';
 
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
@@ -1057,45 +1082,70 @@ class ResponsiveCanvasRenderer {
     ctx.restore();
   }
 
-  // Draw Glowing Animated Bomb Block with Pulsing Fuse & Skull/Star
-  drawBombBlock(ctx, x, y, size) {
+  // Draw 1x1 Compact Tactical Bomb with Pulsing Glow & Floating Countdown Badge
+  draw1x1BombBlock(ctx, x, y, size, fuseSeconds = null) {
     ctx.save();
-    const pad = Math.max(1, size * 0.05);
+    const pad = Math.max(1, size * 0.06);
     const bx = x + pad;
     const by = y + pad;
     const bs = size - pad * 2;
-    const radius = Math.max(4, bs * 0.3);
+    const radius = Math.max(4, bs * 0.28);
 
-    // Pulsing glowing red base
-    const pulse = (Math.sin(Date.now() * 0.008) + 1) / 2; // 0 to 1
-    const glowAlpha = 0.4 + pulse * 0.4;
+    const pulse = (Math.sin(Date.now() * 0.01) + 1) / 2;
+    const glowAlpha = 0.45 + pulse * 0.45;
 
     ctx.shadowColor = `rgba(255, 42, 42, ${glowAlpha})`;
     ctx.shadowBlur = 8 + pulse * 8;
 
     this.drawRoundedRect(ctx, bx, by, bs, bs, radius);
-    ctx.fillStyle = '#e60000';
+    ctx.fillStyle = pulse > 0.6 ? '#ff2a2a' : '#cc0000';
     ctx.fill();
-    ctx.shadowBlur = 0; // Reset shadow
+    ctx.shadowBlur = 0;
 
-    // Inner dark circle like an arcade bomb
-    ctx.fillStyle = '#990000';
+    // Dark core
+    ctx.fillStyle = '#660000';
     ctx.beginPath();
-    ctx.arc(bx + bs / 2, by + bs / 2, bs * 0.38, 0, Math.PI * 2);
+    ctx.arc(bx + bs / 2, by + bs / 2, bs * 0.35, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sizzling yellow spark on top
+    // Sizzling yellow spark top-right
     ctx.fillStyle = pulse > 0.5 ? '#ffff00' : '#ff9900';
     ctx.beginPath();
-    ctx.arc(bx + bs * 0.7, by + bs * 0.3, bs * 0.16, 0, Math.PI * 2);
+    ctx.arc(bx + bs * 0.72, by + bs * 0.28, bs * 0.16, 0, Math.PI * 2);
     ctx.fill();
 
-    // Center cute spark icon
+    // Center cute bomb icon
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.floor(bs * 0.5)}px sans-serif`;
+    ctx.font = `bold ${Math.floor(bs * 0.55)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('💣', bx + bs / 2, by + bs / 2 + 1);
+
+    // Floating Digital Countdown Badge above active falling bomb
+    if (fuseSeconds !== null) {
+      const secNum = parseFloat(fuseSeconds);
+      const isUrgent = secNum <= 2.5;
+
+      ctx.font = `bold ${Math.max(10, Math.floor(bs * 0.45))}px 'Fredoka', sans-serif`;
+      const text = `⏱️ ${fuseSeconds}s`;
+      const textWidth = ctx.measureText(text).width;
+
+      const badgeX = bx + bs / 2;
+      const badgeY = by - 8;
+
+      ctx.fillStyle = isUrgent ? 'rgba(255, 42, 42, 0.95)' : 'rgba(20, 10, 40, 0.88)';
+      ctx.strokeStyle = isUrgent ? '#ffff00' : 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 1;
+
+      this.drawRoundedRect(ctx, badgeX - textWidth / 2 - 4, badgeY - 11, textWidth + 8, 14, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = isUrgent ? '#ffffff' : '#ffd129';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, badgeX, badgeY - 4);
+    }
 
     ctx.restore();
   }
@@ -1119,7 +1169,7 @@ class ResponsiveCanvasRenderer {
     if (!piece) return;
 
     const matrix = piece.matrix;
-    const blockSize = Math.max(12, Math.min(22, Math.floor(boxWidth / 5)));
+    const blockSize = piece.isBomb ? Math.floor(boxWidth * 0.4) : Math.max(12, Math.min(22, Math.floor(boxWidth / 5)));
     const pieceWidth = matrix[0].length * blockSize;
     const pieceHeight = matrix.length * blockSize;
     const offsetX = Math.floor((boxWidth - pieceWidth) / 2);
@@ -1129,7 +1179,7 @@ class ResponsiveCanvasRenderer {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c] !== 0) {
           if (piece.isBomb) {
-            this.drawBombBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize);
+            this.draw1x1BombBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize);
           } else {
             this.drawCandyBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize, piece.color);
           }
@@ -1144,7 +1194,7 @@ class ResponsiveCanvasRenderer {
 
     const def = TETROMINOES[pieceType];
     const matrix = def.shape;
-    const blockSize = Math.max(12, Math.min(22, Math.floor(boxWidth / 5)));
+    const blockSize = def.isBomb ? Math.floor(boxWidth * 0.4) : Math.max(12, Math.min(22, Math.floor(boxWidth / 5)));
     const pieceWidth = matrix[0].length * blockSize;
     const pieceHeight = matrix.length * blockSize;
     const offsetX = Math.floor((boxWidth - pieceWidth) / 2);
@@ -1154,7 +1204,7 @@ class ResponsiveCanvasRenderer {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c] !== 0) {
           if (def.isBomb) {
-            this.drawBombBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize);
+            this.draw1x1BombBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize);
           } else {
             this.drawCandyBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize, def.color);
           }
@@ -1165,7 +1215,7 @@ class ResponsiveCanvasRenderer {
 }
 
 /* ============================================================================
-   6. UI CONTROLLER & DYNAMIC BOMB POPUP OVERLAYS
+   6. UI CONTROLLER & OVERLAYS MANAGEMENT
    ============================================================================ */
 class UIController {
   constructor() {
@@ -1340,7 +1390,6 @@ class TetrisGame {
     this.lastTime = 0;
     this.dropCounter = 0;
     this.animationFrameId = null;
-
     this.shakeTimeout = null;
 
     this.bindEvents();
@@ -1407,6 +1456,24 @@ class TetrisGame {
     const deltaTime = time - this.lastTime;
     this.lastTime = time;
     this.dropCounter += deltaTime;
+
+    // Active Bomb Fuse Countdown Logic
+    if (this.state.currentPiece && this.state.currentPiece.isBomb) {
+      this.state.bombFuseRemaining -= deltaTime;
+
+      // Audio tick countdown every second
+      const currentSec = Math.ceil(this.state.bombFuseRemaining / 1000);
+      if (currentSec !== this.state.lastTickSecond && currentSec > 0) {
+        this.state.lastTickSecond = currentSec;
+        sfx.playFuseTick(currentSec <= 2);
+      }
+
+      // Time's up: bomb detonates in mid-air/current position!
+      if (this.state.bombFuseRemaining <= 0) {
+        this.state.detonateBomb(this.state.currentPiece.x, this.state.currentPiece.y);
+        this.dropCounter = 0;
+      }
+    }
 
     const dropInterval = this.state.getDropInterval();
 
@@ -1493,7 +1560,6 @@ class TetrisGame {
       }
     });
 
-    // UI Buttons
     document.getElementById('start-game-btn').addEventListener('click', () => this.start());
     document.getElementById('resume-game-btn').addEventListener('click', () => this.resume());
     document.getElementById('restart-from-pause-btn').addEventListener('click', () => this.restart());
@@ -1505,7 +1571,6 @@ class TetrisGame {
     const audioBtn = document.getElementById('audio-toggle-btn');
     audioBtn.addEventListener('click', () => this.toggleAudio());
 
-    // Mobile Touch Controls
     const bindTouch = (id, action) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -1531,7 +1596,6 @@ class TetrisGame {
     });
     bindTouch('touch-hold', () => this.state.hold());
 
-    // Leaderboard Form
     const submitBtn = document.getElementById('submit-score-btn');
     const nameInput = document.getElementById('player-name-input');
     const feedbackMsg = document.getElementById('leaderboard-feedback');
