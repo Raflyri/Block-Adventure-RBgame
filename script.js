@@ -1,7 +1,8 @@
 /**
  * ============================================================================
- * WebTetris Edge - Fun Responsive Child-Friendly Edition
- * Enhanced with 1x1 Tactical Candy Bomb, Dynamic Fuse Timer, & Block Shatter VFX
+ * RBlock Adventure - Fun Responsive Child-Friendly Arcade Edition
+ * Featuring 1x1 Tactical Candy Bomb, Dynamic Fuse Timer, Block Shatter VFX,
+ * and Direct On-Screen Touch Drag/Swipe Gestures on Canvas
  * ============================================================================
  */
 
@@ -189,14 +190,12 @@ class PlayfulAudio {
     setTimeout(() => this.playChime(620, 0.09, 'sine', 0.08), 40);
   }
 
-  // Ticking bomb fuse sound effect
   playFuseTick(isUrgent = false) {
     if (this.muted || !this.ctx) return;
     const freq = isUrgent ? 880 : 520;
     this.playChime(freq, 0.04, 'triangle', isUrgent ? 0.1 : 0.06);
   }
 
-  // Deep booming explosion with noise crackle
   playExplosion() {
     if (this.muted || !this.ctx) return;
     try {
@@ -249,10 +248,10 @@ class PlayfulAudio {
     });
   }
 
-  playLineClear(isTetris = false) {
+  playLineClear(isMega = false) {
     if (this.muted || !this.ctx) return;
     this.playShatter();
-    if (isTetris) {
+    if (isMega) {
       const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
       notes.forEach((freq, i) => {
         setTimeout(() => this.playChime(freq, 0.22, 'sine', 0.14), i * 75);
@@ -366,7 +365,7 @@ class ParticleSystem {
     }
   }
 
-  spawnMegaTetrisBurst(width, height) {
+  spawnMegaRBlockBurst(width, height) {
     const rainbow = ['#00e5ff', '#4361ee', '#ff7b00', '#ffbe0b', '#06d6a0', '#a370f7', '#ff4d6d', '#ffffff'];
     for (let i = 0; i < 75; i++) {
       this.particles.push({
@@ -477,7 +476,7 @@ class ParticleSystem {
 }
 
 /* ============================================================================
-   4. LOGICAL GAME STATE (1x1 Tactical Bomb & Level-based Fuse Countdown)
+   4. LOGICAL GAME STATE (RBlock Engine)
    ============================================================================ */
 class GameState {
   constructor() {
@@ -497,7 +496,6 @@ class GameState {
     this.bag = [];
     this.piecesSinceLastBomb = 0;
 
-    // Bomb Fuse Timer State
     this.bombFuseDuration = 8000;
     this.bombFuseRemaining = 8000;
     this.lastTickSecond = 8;
@@ -509,7 +507,7 @@ class GameState {
 
   loadHighScore() {
     try {
-      const saved = localStorage.getItem('webtetris_high_score');
+      const saved = localStorage.getItem('rblock_adventure_highscore') || localStorage.getItem('webtetris_high_score');
       return saved ? parseInt(saved, 10) : 0;
     } catch (e) {
       return 0;
@@ -520,7 +518,7 @@ class GameState {
     if (this.score > this.highScore) {
       this.highScore = this.score;
       try {
-        localStorage.setItem('webtetris_high_score', this.highScore.toString());
+        localStorage.setItem('rblock_adventure_highscore', this.highScore.toString());
       } catch (e) {}
     }
   }
@@ -543,8 +541,6 @@ class GameState {
     this.initBombFuseIfActive();
   }
 
-  // Calculate dynamic fuse timer based on level:
-  // Level 1: 8.0s, Level 2: 6.5s, Level 3: 5.0s, Level 4: 4.0s, Level 5+: 3.0s - 2.5s
   getBombFuseDurationForLevel(level) {
     switch (level) {
       case 1: return 8000;
@@ -564,11 +560,9 @@ class GameState {
     }
   }
 
-  // Spawn logic: controlled rare frequency (every 18-24 pieces)
   getNextPieceType() {
     this.piecesSinceLastBomb++;
 
-    // Only allow Bomb after at least 16 pieces, with guaranteed spawn at 24 pieces
     if (this.piecesSinceLastBomb >= 16) {
       const chance = this.piecesSinceLastBomb >= 24 ? 1.0 : 0.25;
       if (Math.random() < chance) {
@@ -646,7 +640,6 @@ class GameState {
 
   rotateCurrentPiece() {
     if (!this.currentPiece || this.status !== GameStatus.PLAYING) return false;
-    // Don't rotate O-piece or 1x1 Bomb
     if (this.currentPiece.type === 'O' || this.currentPiece.isBomb) return false;
 
     const originalMatrix = this.currentPiece.matrix;
@@ -787,7 +780,7 @@ class GameState {
       this.updateLevelAndScore(cleared);
       ui.triggerBanner(cleared, this.comboStreak);
       if (cleared === 4) {
-        particles.spawnMegaTetrisBurst(game.renderer.width, game.renderer.height);
+        particles.spawnMegaRBlockBurst(game.renderer.width, game.renderer.height);
         game.triggerScreenShake(true);
       }
     } else {
@@ -804,7 +797,6 @@ class GameState {
     }
   }
 
-  // 1x1 Bomb Detonation (Radius 3x3 surrounding grid)
   detonateBomb(centerX, centerY) {
     sfx.playExplosion();
     game.triggerScreenShake(true);
@@ -814,7 +806,7 @@ class GameState {
     particles.spawnBombExplosion(pixelX, pixelY);
 
     let destroyedCount = 0;
-    const radius = 1; // 1 cell in all directions = 3x3 grid
+    const radius = 1; // 3x3 surrounding grid
 
     for (let r = centerY - radius; r <= centerY + radius; r++) {
       for (let c = centerX - radius; c <= centerX + radius; c++) {
@@ -1082,7 +1074,6 @@ class ResponsiveCanvasRenderer {
     ctx.restore();
   }
 
-  // Draw 1x1 Compact Tactical Bomb with Pulsing Glow & Floating Countdown Badge
   draw1x1BombBlock(ctx, x, y, size, fuseSeconds = null) {
     ctx.save();
     const pad = Math.max(1, size * 0.06);
@@ -1102,26 +1093,22 @@ class ResponsiveCanvasRenderer {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Dark core
     ctx.fillStyle = '#660000';
     ctx.beginPath();
     ctx.arc(bx + bs / 2, by + bs / 2, bs * 0.35, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sizzling yellow spark top-right
     ctx.fillStyle = pulse > 0.5 ? '#ffff00' : '#ff9900';
     ctx.beginPath();
     ctx.arc(bx + bs * 0.72, by + bs * 0.28, bs * 0.16, 0, Math.PI * 2);
     ctx.fill();
 
-    // Center cute bomb icon
     ctx.fillStyle = '#ffffff';
     ctx.font = `bold ${Math.floor(bs * 0.55)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('💣', bx + bs / 2, by + bs / 2 + 1);
 
-    // Floating Digital Countdown Badge above active falling bomb
     if (fuseSeconds !== null) {
       const secNum = parseFloat(fuseSeconds);
       const isUrgent = secNum <= 2.5;
@@ -1301,7 +1288,7 @@ class UIController {
       1: combo > 1 ? `${combo}x COMBO! 🔥 +${100 + (combo - 1) * 50}` : 'YAY! +100 ⭐',
       2: combo > 1 ? `${combo}x DOUBLE! ⚡ +${300 + (combo - 1) * 50}` : 'AWESOME! +300 🌈',
       3: 'SUPER COMBO! +500 🚀',
-      4: 'MEGA TETRIS! +800 ★🎉'
+      4: 'MEGA RBLOCK! +800 ★🎉'
     };
 
     this.floatingBanner.className = 'floating-banner';
@@ -1367,13 +1354,13 @@ async function submitHighscore(playerName, score) {
 }
 
 /* ============================================================================
-   8. MAIN GAME CONTROLLER & REQUESTANIMATIONFRAME LOOP
+   8. MAIN GAME CONTROLLER, REQUESTANIMATIONFRAME LOOP & TOUCH GESTURES
    ============================================================================ */
-class TetrisGame {
+class RBlockGame {
   constructor() {
     this.state = new GameState();
     this.container = document.getElementById('canvas-container');
-    this.canvas = document.getElementById('tetris-canvas');
+    this.canvas = document.getElementById('rblock-canvas') || document.querySelector('canvas');
     this.nextCanvas = document.getElementById('next-canvas');
     this.holdCanvas = document.getElementById('hold-canvas');
     this.holdCanvasMobile = document.getElementById('hold-canvas-mobile');
@@ -1393,6 +1380,7 @@ class TetrisGame {
     this.shakeTimeout = null;
 
     this.bindEvents();
+    this.setupCanvasTouchGestures();
     this.ui.showStart();
     this.renderer.render(this.state);
   }
@@ -1461,14 +1449,12 @@ class TetrisGame {
     if (this.state.currentPiece && this.state.currentPiece.isBomb) {
       this.state.bombFuseRemaining -= deltaTime;
 
-      // Audio tick countdown every second
       const currentSec = Math.ceil(this.state.bombFuseRemaining / 1000);
       if (currentSec !== this.state.lastTickSecond && currentSec > 0) {
         this.state.lastTickSecond = currentSec;
         sfx.playFuseTick(currentSec <= 2);
       }
 
-      // Time's up: bomb detonates in mid-air/current position!
       if (this.state.bombFuseRemaining <= 0) {
         this.state.detonateBomb(this.state.currentPiece.x, this.state.currentPiece.y);
         this.dropCounter = 0;
@@ -1487,6 +1473,89 @@ class TetrisGame {
     particles.updateAndDraw();
 
     this.animationFrameId = requestAnimationFrame(t => this.loop(t));
+  }
+
+  // Direct Touch Gestures on Canvas (Swipe, Drag & Tap)
+  setupCanvasTouchGestures() {
+    if (!this.container) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let lastMoveX = 0;
+    let lastMoveY = 0;
+    let touchStartTime = 0;
+    let hasMovedHorizontally = false;
+
+    const onTouchStart = (e) => {
+      if (this.state.status !== GameStatus.PLAYING) return;
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      lastMoveX = touch.clientX;
+      lastMoveY = touch.clientY;
+      touchStartTime = performance.now();
+      hasMovedHorizontally = false;
+      sfx.init();
+    };
+
+    const onTouchMove = (e) => {
+      if (this.state.status !== GameStatus.PLAYING) return;
+      const touch = e.touches[0];
+      const currentX = touch.clientX;
+      const currentY = touch.clientY;
+
+      const deltaX = currentX - lastMoveX;
+      const deltaY = currentY - lastMoveY;
+
+      // Move piece horizontally when dragging reaches threshold
+      const stepThreshold = Math.max(14, this.renderer.blockSize * 0.7);
+
+      if (Math.abs(deltaX) >= stepThreshold) {
+        const dir = deltaX > 0 ? 1 : -1;
+        const steps = Math.floor(Math.abs(deltaX) / stepThreshold);
+        for (let i = 0; i < steps; i++) {
+          this.state.moveCurrentPiece(dir);
+        }
+        lastMoveX = currentX;
+        hasMovedHorizontally = true;
+      }
+
+      // Drag downwards: Soft Drop
+      if (deltaY >= stepThreshold * 1.3) {
+        this.state.softDrop();
+        this.dropCounter = 0;
+        lastMoveY = currentY;
+      }
+
+      e.preventDefault();
+    };
+
+    const onTouchEnd = (e) => {
+      if (this.state.status !== GameStatus.PLAYING) return;
+      const touchDuration = performance.now() - touchStartTime;
+      const touch = e.changedTouches[0];
+      const totalDistX = Math.abs(touch.clientX - touchStartX);
+      const totalDistY = touch.clientY - touchStartY;
+
+      // 1. Fast flick downwards: Super Drop / Hard Drop
+      if (totalDistY > 45 && touchDuration < 250 && !hasMovedHorizontally) {
+        this.state.hardDrop();
+        this.dropCounter = 0;
+        e.preventDefault();
+        return;
+      }
+
+      // 2. Quick Tap: Rotate piece
+      if (totalDistX < 14 && Math.abs(totalDistY) < 14 && touchDuration < 240) {
+        this.state.rotateCurrentPiece();
+        e.preventDefault();
+        return;
+      }
+    };
+
+    this.container.addEventListener('touchstart', onTouchStart, { passive: false });
+    this.container.addEventListener('touchmove', onTouchMove, { passive: false });
+    this.container.addEventListener('touchend', onTouchEnd, { passive: false });
   }
 
   bindEvents() {
@@ -1571,6 +1640,7 @@ class TetrisGame {
     const audioBtn = document.getElementById('audio-toggle-btn');
     audioBtn.addEventListener('click', () => this.toggleAudio());
 
+    // Mobile Touch Buttons (for hybrid control: buttons + screen drag)
     const bindTouch = (id, action) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -1634,6 +1704,6 @@ let particles;
 window.addEventListener('DOMContentLoaded', () => {
   const particleCanvas = document.getElementById('particles-canvas');
   particles = new ParticleSystem(particleCanvas);
-  game = new TetrisGame();
+  game = new RBlockGame();
   ui = game.ui;
 });

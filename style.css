@@ -1,6 +1,6 @@
 /* ==========================================================================
-   WebTetris Edge - Modern Fully Responsive Child-Friendly Stylesheet
-   Enhanced with Screen Shake, Bomb VFX, and Celebration Animations
+   RBlock Adventure - Modern Fully Responsive Child-Friendly Stylesheet
+   Enhanced with Touch Gestures, Screen Shake, Bomb VFX, and Celebrations
    ========================================================================== */
 
 :root {
@@ -359,6 +359,7 @@ body {
   justify-content: center;
   align-items: center;
   transition: transform 0.05s ease-out;
+  touch-action: none; /* Allows direct swipe/drag gestures without page scroll */
 }
 
 /* ==========================================================================
@@ -385,11 +386,12 @@ body {
   100% { transform: translateY(0); }
 }
 
-#tetris-canvas {
+#rblock-canvas {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
+  touch-action: none;
 }
 
 #particles-canvas {

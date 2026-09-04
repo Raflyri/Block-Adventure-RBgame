@@ -6,10 +6,10 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>WebTetris Edge | Fun Responsive Arcade Adventure</title>
+    <title>RBlock Adventure | Fun Responsive Arcade Game</title>
     <meta
       name="description"
-      content="A joyful, colorful, and fully responsive child-friendly Tetris game with Candy Bombs, block explosions, and celebratory particles!"
+      content="A joyful, colorful, and fully responsive block arcade adventure with Candy Bombs, touch swipe gestures, and celebratory particles!"
     />
     <meta name="theme-color" content="#1b1035" />
 
@@ -49,7 +49,7 @@
             <span class="mascot-block b-green"></span>
           </div>
           <div class="brand-text">
-            <h1>WebTetris <span class="accent-badge">FUN!</span></h1>
+            <h1>RBlock <span class="accent-badge">ADVENTURE</span></h1>
             <span class="sub-badge">💣 Candy Bomb Edition 💣</span>
           </div>
         </div>
@@ -139,10 +139,10 @@
           </div>
         </aside>
 
-        <!-- Center: Main Tetris Matrix Canvas & Overlays -->
+        <!-- Center: Main Game Matrix Canvas & Overlays -->
         <section class="canvas-wrapper" id="canvas-wrapper">
           <div class="canvas-container" id="canvas-container">
-            <canvas id="tetris-canvas"></canvas>
+            <canvas id="rblock-canvas"></canvas>
 
             <!-- Confetti, Shockwave & Particle Overlay Canvas -->
             <canvas id="particles-canvas"></canvas>
@@ -153,26 +153,26 @@
             <!-- UI Overlay: Start Screen -->
             <div id="start-overlay" class="overlay">
               <div class="overlay-content candy-modal bounce-in">
-                <div class="mascot-face">💣</div>
-                <div class="modal-badge">BOMB & COMBO EDITION</div>
-                <h2 class="overlay-title">Block Adventure!</h2>
+                <div class="mascot-face">🚀</div>
+                <div class="modal-badge">RBLOCK ADVENTURE</div>
+                <h2 class="overlay-title">Ready to Play?</h2>
                 <p class="overlay-desc">
-                  Drop cute blocks, blast obstacles with
-                  <strong>Candy Bombs 💣</strong>, and trigger mega combos!
+                  Stack cute candy blocks, swipe directly on screen to move, and blast obstacles with
+                  <strong>Candy Bombs 💣</strong>!
                 </p>
 
                 <div class="controls-summary">
                   <div class="ctrl-row">
-                    <kbd>←</kbd> <kbd>→</kbd> <span>Slide</span>
+                    <kbd>←</kbd> <kbd>→</kbd> / <span>Drag on Screen</span>
                   </div>
                   <div class="ctrl-row">
-                    <kbd>↑</kbd> <span>Spin & Rotate</span>
+                    <kbd>↑</kbd> / <span>Tap Screen to Spin</span>
                   </div>
                   <div class="ctrl-row">
-                    <kbd>↓</kbd> <span>Gentle Drop</span>
+                    <kbd>↓</kbd> / <span>Drag Down (Soft Drop)</span>
                   </div>
                   <div class="ctrl-row">
-                    <kbd>Space</kbd> <span>Super Drop! ⚡</span>
+                    <kbd>Space</kbd> / <span>Flick Down (Super Drop)</span>
                   </div>
                   <div class="ctrl-row">
                     <kbd>C</kbd> <span>Pocket / Hold 🎒</span>
@@ -306,11 +306,11 @@
             </div>
             <ul class="key-list">
               <li class="key-item">
-                <span class="action-name">Move</span>
+                <span class="action-name">Move / Slide</span>
                 <span class="key-combo"><kbd>←</kbd><kbd>→</kbd></span>
               </li>
               <li class="key-item">
-                <span class="action-name">Rotate</span>
+                <span class="action-name">Rotate / Spin</span>
                 <span class="key-combo"><kbd>↑</kbd></span>
               </li>
               <li class="key-item">
