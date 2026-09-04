@@ -6,18 +6,30 @@
 [![CSS3](https://img.shields.io/badge/Styles-CSS3%20Responsive-1572b6?style=for-the-badge&logo=css3)](https://developer.mozilla.org/en-US/docs/Web/CSS)
 [![License: Proprietary](https://img.shields.io/badge/Copyright-RBeverything-6b21a8?style=for-the-badge)](https://rbeverything.com)
 
-**WebTetris Edge** adalah game Tetris berbasis web modern, ceria (*child-friendly*), dan berkinerja tinggi yang dibangun murni menggunakan **HTML5 Canvas, Vanilla JavaScript (ES6+), dan CSS3** tanpa dependensi eksternal. Game ini dioptimalkan khusus untuk *zero-config deployment* di **Cloudflare Pages** serta siap dihubungkan ke **Cloudflare Workers + KV**.
+**WebTetris Edge** adalah game Tetris modern, ceria (*child-friendly*), dan berkinerja tinggi yang dibangun murni menggunakan **HTML5 Canvas, Vanilla JavaScript (ES6+), dan CSS3** tanpa dependensi eksternal. Game ini dioptimalkan khusus untuk *zero-config deployment* di **Cloudflare Pages** serta siap dihubungkan ke **Cloudflare Workers + KV**.
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Fitur Utama Terbaru
+
+- 💣 **Balok Bom Spesial (Candy Bomb & Explosions)**:
+  - Balok Bom 2×2 khusus dengan sumbu menyala (*pulsing animated fuse*) yang sesekali muncul (~12% chance).
+  - Saat mendarat, bom akan **meledak dengan radius 3×3**, membersihkan tumpukan balok di sekitarnya dan memberikan bonus poin ledakan (*+250 Blast Bonus!*).
+  - Dilengkapi efek **getar layar (*Screen Shake*)**, lingkaran gelombang kejut (*Shockwave Ring*), serta percikan api kartun.
+
+- 💥 **Animasi Pecahan Balok & Shattered Debris**:
+  - Saat baris dibersihkan (*line clear*), balok hancur berkeping-keping menjadi pecahan partikel warna-warni (*shattered debris*) yang berhamburan dengan gravitasi.
+
+- 🔊 **Efek Suara Arcade Unik & Punchy (Pure Web Audio API)**:
+  - Suara dentuman ledakan bom menggelegar (*deep sub-bass noise boom*).
+  - Efek suara gemerincing balok hancur (*crystalline shatter clink*).
+  - Nada arpeggio kombo bertingkat yang semakin tinggi (*1x, 2x, 3x COMBO!*).
+  - Melodi ceria marimba/xylophone chimes untuk gerakan, rotasi, dan *line clear*.
 
 - 🍬 **Desain Ceria & Child-Friendly**:
   - Blok dirender menyerupai **permen jelly kenyal & mengkilap** (*glossy rounded candy blocks*).
   - Latar belakang gradasi ungu manis dengan animasi gelembung melayang dan bintang berkelip.
   - Tipografi bulat bersahabat menggunakan Google Font **`Fredoka`**.
-  - Efek suara ceria menggunakan synthesizer Web Audio API (*marimba/xylophone chimes*) tanpa perlu memuat file audio eksternal.
-  - Efek ledakan partikel kembang api bintang & confetti saat berhasil membersihkan baris (*line clear*).
 
 - 📱 **100% Responsif & Fit-to-Screen**:
   - **No-Scroll Game Layout**: Menggunakan dynamic viewport height (`100dvh`), sehingga pas dalam satu layar tanpa scroll vertikal yang mengganggu.
@@ -63,13 +75,17 @@
 
 ---
 
-## 🏆 Sistem Skor & Level
+## 🏆 Sistem Skor, Kombo & Level
 
 - **Skor Garis**:
   - 1 Garis (*Single*): **100 Poin**
   - 2 Garis (*Double*): **300 Poin**
   - 3 Garis (*Triple*): **500 Poin**
   - 4 Garis (*Tetris!*): **800 Poin** (disertai pesta kembang api bintang)
+- **Bonus Kombo Beruntun**:
+  - Mendapat tambahan bonus poin berlipat saat membersihkan baris secara berturut-turut (*2x COMBO! 🔥*, *3x COMBO! ⚡*).
+- **Bonus Ledakan Candy Bomb**:
+  - **+250 Poin dasar** + **40 Poin** untuk setiap balok yang hancur dalam radius ledakan 3×3.
 - **Bonus Drop**:
   - *Soft Drop*: +1 poin per petak jatuh.
   - *Hard Drop*: +2 poin per petak jatuh.
@@ -127,8 +143,8 @@ Game ini siap di-deploy secara instan (*Zero-Config*):
 ```
 tetris-web-rb/
 ├── index.html       # Struktur semantik HTML5, UI Overlays, & wadah responsif
-├── style.css        # Sistem desain CSS3 adaptif, animasi permen, & media queries
-├── script.js        # Engine Tetris, Canvas Renderer dinamis, SFX synthesizer, & API hook
+├── style.css        # Sistem desain CSS3 adaptif, animasi getar & ledakan
+├── script.js        # Engine Tetris, Candy Bomb, Particle System, & SFX Synthesizer
 ├── .gitignore       # Daftar berkas yang diabaikan oleh Git
 └── README.md        # Dokumentasi resmi proyek
 ```

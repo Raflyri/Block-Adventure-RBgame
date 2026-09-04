@@ -1,10 +1,7 @@
 /**
  * ============================================================================
  * WebTetris Edge - Fun Responsive Child-Friendly Edition
- * ============================================================================
- * Fully responsive across Desktop, Tablet, and Mobile Portrait/Landscape.
- * Features dynamic canvas scaling, jelly candy blocks, celebratory particles,
- * dual desktop/mobile hold previews, and cheerful audio.
+ * Enhanced with Candy Bomb, Block Shatter VFX, Screen Shake & Arcade Audio
  * ============================================================================
  */
 
@@ -16,7 +13,7 @@
 const COLS = 10;
 const ROWS = 20;
 
-// Cheerful Candy-Colored Tetrominoes
+// Cheerful Candy-Colored Tetrominoes + Special Candy Bomb
 const TETROMINOES = {
   I: {
     shape: [
@@ -25,7 +22,7 @@ const TETROMINOES = {
       [0, 0, 0, 0],
       [0, 0, 0, 0]
     ],
-    color: '#00e5ff', // Sky Cyan
+    color: '#00e5ff',
     highlight: '#a7f3d0'
   },
   J: {
@@ -34,7 +31,7 @@ const TETROMINOES = {
       [1, 1, 1],
       [0, 0, 0]
     ],
-    color: '#4361ee', // Berry Blue
+    color: '#4361ee',
     highlight: '#93c5fd'
   },
   L: {
@@ -43,7 +40,7 @@ const TETROMINOES = {
       [1, 1, 1],
       [0, 0, 0]
     ],
-    color: '#ff7b00', // Tangy Orange
+    color: '#ff7b00',
     highlight: '#fed7aa'
   },
   O: {
@@ -51,7 +48,7 @@ const TETROMINOES = {
       [1, 1],
       [1, 1]
     ],
-    color: '#ffbe0b', // Sunny Yellow
+    color: '#ffbe0b',
     highlight: '#fef08a'
   },
   S: {
@@ -60,7 +57,7 @@ const TETROMINOES = {
       [1, 1, 0],
       [0, 0, 0]
     ],
-    color: '#06d6a0', // Kiwi Green
+    color: '#06d6a0',
     highlight: '#bbf7d0'
   },
   T: {
@@ -69,7 +66,7 @@ const TETROMINOES = {
       [1, 1, 1],
       [0, 0, 0]
     ],
-    color: '#a370f7', // Lilac Purple
+    color: '#a370f7',
     highlight: '#e9d5ff'
   },
   Z: {
@@ -78,14 +75,23 @@ const TETROMINOES = {
       [0, 1, 1],
       [0, 0, 0]
     ],
-    color: '#ff4d6d', // Strawberry Pink
+    color: '#ff4d6d',
     highlight: '#fecdd3'
+  },
+  BOMB: {
+    shape: [
+      [1, 1],
+      [1, 1]
+    ],
+    color: '#ff2a2a',
+    highlight: '#ff9999',
+    isBomb: true
   }
 };
 
-const PIECE_KEYS = Object.keys(TETROMINOES);
+const CLASSIC_PIECE_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
 
-// Scoring rules (100 for 1, 300 for 2, 500 for 3, 800 for 4)
+// Scoring rules
 const LINE_POINTS = {
   1: 100,
   2: 300,
@@ -101,12 +107,13 @@ const GameStatus = {
 };
 
 /* ============================================================================
-   2. CHEERFUL AUDIO SYNTHESIZER
+   2. PUNCHY ARCADE AUDIO SYNTHESIZER (Noise Explosions, Chimes, & Shatter)
    ============================================================================ */
 class PlayfulAudio {
   constructor() {
     this.ctx = null;
     this.muted = false;
+    this.noiseBuffer = null;
   }
 
   init() {
@@ -114,10 +121,21 @@ class PlayfulAudio {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+        this.createNoiseBuffer();
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
+    }
+  }
+
+  createNoiseBuffer() {
+    if (!this.ctx) return;
+    const bufferSize = this.ctx.sampleRate * 1.5;
+    this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = this.noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
     }
   }
 
@@ -135,7 +153,7 @@ class PlayfulAudio {
 
       osc.type = type;
       osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.96, now + duration);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.95, now + duration);
 
       gain.gain.setValueAtTime(volume, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
@@ -149,38 +167,96 @@ class PlayfulAudio {
   }
 
   playMove() {
-    this.playChime(420, 0.07, 'sine', 0.06);
+    this.playChime(420, 0.06, 'sine', 0.05);
   }
 
   playRotate() {
-    this.playChime(520, 0.08, 'sine', 0.08);
-    setTimeout(() => this.playChime(640, 0.08, 'sine', 0.08), 35);
+    this.playChime(540, 0.07, 'sine', 0.07);
+    setTimeout(() => this.playChime(680, 0.07, 'sine', 0.07), 30);
   }
 
   playDrop() {
-    this.playChime(260, 0.09, 'triangle', 0.09);
+    this.playChime(240, 0.08, 'triangle', 0.08);
   }
 
   playHardDrop() {
-    this.playChime(190, 0.14, 'triangle', 0.14);
-    setTimeout(() => this.playChime(320, 0.12, 'sine', 0.09), 40);
+    // Deep thud with punchy transient
+    this.playChime(150, 0.15, 'triangle', 0.18);
+    this.playChime(80, 0.2, 'sine', 0.2);
   }
 
   playHold() {
-    this.playChime(480, 0.1, 'sine', 0.08);
-    setTimeout(() => this.playChime(600, 0.1, 'sine', 0.08), 50);
+    this.playChime(480, 0.09, 'sine', 0.08);
+    setTimeout(() => this.playChime(620, 0.09, 'sine', 0.08), 40);
+  }
+
+  // Deep booming explosion with noise crackle
+  playExplosion() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+
+      // 1. Sub-bass boom oscillator
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = 'sawtooth';
+      subOsc.frequency.setValueAtTime(160, now);
+      subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.5);
+
+      subGain.gain.setValueAtTime(0.3, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+      subOsc.connect(subGain);
+      subGain.connect(this.ctx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + 0.5);
+
+      // 2. Filtered noise blast
+      if (this.noiseBuffer) {
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.noiseBuffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, now);
+        filter.frequency.exponentialRampToValueAtTime(100, now + 0.45);
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.35, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+
+        noise.start(now);
+        noise.stop(now + 0.45);
+      }
+    } catch (e) {}
+  }
+
+  // Crystalline shattering sound effect for clearing blocks
+  playShatter() {
+    if (this.muted || !this.ctx) return;
+    const freqs = [1200, 1650, 2100, 2800];
+    freqs.forEach((freq, idx) => {
+      setTimeout(() => {
+        this.playChime(freq + Math.random() * 200, 0.08, 'sine', 0.05);
+      }, idx * 25);
+    });
   }
 
   playLineClear(isTetris = false) {
     if (this.muted || !this.ctx) return;
+    this.playShatter();
     if (isTetris) {
       const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
       notes.forEach((freq, i) => {
-        setTimeout(() => this.playChime(freq, 0.24, 'sine', 0.14), i * 75);
+        setTimeout(() => this.playChime(freq, 0.22, 'sine', 0.14), i * 75);
       });
     } else {
       [587.33, 739.99, 880].forEach((freq, i) => {
-        setTimeout(() => this.playChime(freq, 0.16, 'sine', 0.1), i * 65);
+        setTimeout(() => this.playChime(freq, 0.15, 'sine', 0.1), i * 65);
       });
     }
   }
@@ -196,14 +272,14 @@ class PlayfulAudio {
 const sfx = new PlayfulAudio();
 
 /* ============================================================================
-   3. CELEBRATION PARTICLES SYSTEM
+   3. CELEBRATION & EXPLOSION PARTICLES SYSTEM (Debris, Shockwaves, Sparks)
    ============================================================================ */
 class ParticleSystem {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.particles = [];
-    this.colors = ['#ff4d6d', '#ffbe0b', '#00e5ff', '#06d6a0', '#ff7b00', '#a370f7', '#ffffff'];
+    this.shockwaves = [];
   }
 
   resize(width, height, dpr) {
@@ -213,54 +289,143 @@ class ParticleSystem {
     this.ctx.scale(dpr, dpr);
   }
 
-  spawnLineBurst(rowY, blockSize, count = 28) {
+  // Shattered block debris flying with physics & rotation
+  spawnLineBurst(rowY, blockSize, rowColors = []) {
     const yPos = rowY * blockSize + blockSize / 2;
+    const count = 35;
+
     for (let i = 0; i < count; i++) {
-      const isStar = Math.random() > 0.4;
+      const isStar = Math.random() > 0.45;
+      const color = rowColors.length ? rowColors[Math.floor(Math.random() * rowColors.length)] : '#ffbe0b';
+
       this.particles.push({
         x: Math.random() * (COLS * blockSize),
-        y: yPos + (Math.random() - 0.5) * (blockSize * 0.5),
-        vx: (Math.random() - 0.5) * 6,
-        vy: -Math.random() * 4 - 2,
-        size: Math.random() * 5 + 3,
-        color: this.colors[Math.floor(Math.random() * this.colors.length)],
+        y: yPos + (Math.random() - 0.5) * (blockSize * 0.6),
+        vx: (Math.random() - 0.5) * 8,
+        vy: -Math.random() * 5 - 2,
+        size: Math.random() * 6 + 4,
+        color: color || '#ffbe0b',
         rotation: Math.random() * Math.PI * 2,
-        vRot: (Math.random() - 0.5) * 0.2,
+        vRot: (Math.random() - 0.5) * 0.3,
         alpha: 1,
         decay: Math.random() * 0.02 + 0.02,
-        isStar
+        isStar,
+        type: 'debris'
+      });
+    }
+  }
+
+  // Giant Bomb Explosion with shockwave, fiery sparks, and smoke
+  spawnBombExplosion(centerX, centerY) {
+    // 1. Expanding Shockwave Ring
+    this.shockwaves.push({
+      x: centerX,
+      y: centerY,
+      radius: 10,
+      maxRadius: 130,
+      alpha: 1,
+      speed: 8
+    });
+
+    // 2. High-speed Fiery Sparks (Orange, Red, Yellow, White)
+    const fireColors = ['#ff2a2a', '#ff7b00', '#ffbe0b', '#ffffff', '#ff4d6d'];
+    for (let i = 0; i < 60; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 9 + 3;
+      this.particles.push({
+        x: centerX,
+        y: centerY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: Math.random() * 7 + 4,
+        color: fireColors[Math.floor(Math.random() * fireColors.length)],
+        rotation: Math.random() * Math.PI * 2,
+        vRot: (Math.random() - 0.5) * 0.4,
+        alpha: 1,
+        decay: Math.random() * 0.025 + 0.02,
+        isStar: Math.random() > 0.4,
+        type: 'fire'
+      });
+    }
+
+    // 3. Cartoon Smoke Puffs (translucent purple/gray)
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 2 + 1;
+      this.particles.push({
+        x: centerX + (Math.random() - 0.5) * 20,
+        y: centerY + (Math.random() - 0.5) * 20,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.8,
+        size: Math.random() * 16 + 10,
+        color: 'rgba(230, 210, 255, 0.45)',
+        rotation: Math.random() * Math.PI * 2,
+        vRot: (Math.random() - 0.5) * 0.1,
+        alpha: 0.8,
+        decay: 0.025,
+        type: 'smoke'
       });
     }
   }
 
   spawnMegaTetrisBurst(width, height) {
-    for (let i = 0; i < 70; i++) {
-      const isStar = Math.random() > 0.3;
+    const rainbow = ['#00e5ff', '#4361ee', '#ff7b00', '#ffbe0b', '#06d6a0', '#a370f7', '#ff4d6d', '#ffffff'];
+    for (let i = 0; i < 75; i++) {
       this.particles.push({
         x: Math.random() * width,
-        y: Math.random() * (height * 0.7) + 30,
-        vx: (Math.random() - 0.5) * 7,
-        vy: -Math.random() * 5 - 2,
-        size: Math.random() * 7 + 4,
-        color: this.colors[Math.floor(Math.random() * this.colors.length)],
+        y: Math.random() * (height * 0.6) + 30,
+        vx: (Math.random() - 0.5) * 8,
+        vy: -Math.random() * 6 - 3,
+        size: Math.random() * 8 + 4,
+        color: rainbow[Math.floor(Math.random() * rainbow.length)],
         rotation: Math.random() * Math.PI * 2,
         vRot: (Math.random() - 0.5) * 0.3,
         alpha: 1,
         decay: Math.random() * 0.015 + 0.015,
-        isStar
+        isStar: Math.random() > 0.35,
+        type: 'debris'
       });
     }
   }
 
   updateAndDraw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // 1. Draw and update Shockwaves
+    for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+      const sw = this.shockwaves[i];
+      sw.radius += sw.speed;
+      sw.alpha -= 0.045;
+
+      if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+        this.shockwaves.splice(i, 1);
+        continue;
+      }
+
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+      this.ctx.lineWidth = Math.max(2, (1 - sw.radius / sw.maxRadius) * 8);
+      this.ctx.strokeStyle = `rgba(255, 220, 100, ${sw.alpha})`;
+      this.ctx.stroke();
+
+      // Second soft outer ring
+      this.ctx.beginPath();
+      this.ctx.arc(sw.x, sw.y, sw.radius * 0.85, 0, Math.PI * 2);
+      this.ctx.lineWidth = 3;
+      this.ctx.strokeStyle = `rgba(255, 77, 109, ${sw.alpha * 0.6})`;
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
+
+    // 2. Draw and update Particles
     if (this.particles.length === 0) return;
 
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.15;
+      p.vy += p.type === 'smoke' ? -0.05 : 0.18; // Gravity (smoke floats up)
       p.rotation += p.vRot;
       p.alpha -= p.decay;
 
@@ -274,11 +439,18 @@ class ParticleSystem {
       this.ctx.translate(p.x, p.y);
       this.ctx.rotate(p.rotation);
 
-      if (p.isStar) {
+      if (p.type === 'smoke') {
+        // Soft round smoke puff
+        this.ctx.fillStyle = p.color;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+        this.ctx.fill();
+      } else if (p.isStar) {
         this.drawStar(this.ctx, 0, 0, 5, p.size, p.size / 2, p.color);
       } else {
+        // Sharp shattered debris block
         this.ctx.fillStyle = p.color;
-        this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+        this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
       }
 
       this.ctx.restore();
@@ -312,7 +484,7 @@ class ParticleSystem {
 }
 
 /* ============================================================================
-   4. LOGICAL GAME STATE
+   4. LOGICAL GAME STATE (7-Bag + Special Bomb Piece & Explosion Radius)
    ============================================================================ */
 class GameState {
   constructor() {
@@ -326,9 +498,11 @@ class GameState {
     this.highScore = this.loadHighScore();
     this.level = 1;
     this.linesCleared = 0;
+    this.comboStreak = 0;
     this.status = GameStatus.IDLE;
 
     this.bag = [];
+    this.pieceCounter = 0;
   }
 
   createEmptyBoard() {
@@ -356,6 +530,8 @@ class GameState {
   reset() {
     this.board = this.createEmptyBoard();
     this.bag = [];
+    this.pieceCounter = 0;
+    this.comboStreak = 0;
     this.currentPiece = this.getNewPiece();
     this.nextPiece = this.getNewPiece();
     this.holdPiece = null;
@@ -366,9 +542,17 @@ class GameState {
     this.status = GameStatus.PLAYING;
   }
 
+  // 7-Bag Randomizer with ~12% Special Bomb Piece Event
   getNextPieceType() {
+    this.pieceCounter++;
+
+    // Every 8th piece OR 12% probability spawns a SPECIAL CANDY BOMB!
+    if (this.pieceCounter > 3 && (this.pieceCounter % 8 === 0 || Math.random() < 0.12)) {
+      return 'BOMB';
+    }
+
     if (this.bag.length === 0) {
-      this.bag = [...PIECE_KEYS];
+      this.bag = [...CLASSIC_PIECE_KEYS];
       for (let i = this.bag.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
@@ -385,6 +569,7 @@ class GameState {
       matrix: def.shape.map(row => [...row]),
       color: def.color,
       highlight: def.highlight,
+      isBomb: !!def.isBomb,
       x: Math.floor((COLS - def.shape[0].length) / 2),
       y: 0
     };
@@ -396,13 +581,19 @@ class GameState {
 
   updateLevelAndScore(clearedCount) {
     if (clearedCount > 0) {
-      const points = LINE_POINTS[clearedCount] || (clearedCount * 100);
+      this.comboStreak++;
+      const basePoints = LINE_POINTS[clearedCount] || (clearedCount * 100);
+      const comboBonus = (this.comboStreak - 1) * 50;
+      const points = basePoints + comboBonus;
+
       this.score += points;
       this.linesCleared += clearedCount;
       this.saveHighScore();
 
       const newLevel = Math.floor(this.score / 1000) + 1;
       this.level = newLevel;
+    } else {
+      this.comboStreak = 0;
     }
   }
 
@@ -429,7 +620,8 @@ class GameState {
 
   rotateCurrentPiece() {
     if (!this.currentPiece || this.status !== GameStatus.PLAYING) return false;
-    if (this.currentPiece.type === 'O') return false;
+    // Don't rotate O-piece or 2x2 Bomb
+    if (this.currentPiece.type === 'O' || this.currentPiece.isBomb) return false;
 
     const originalMatrix = this.currentPiece.matrix;
     const rotated = originalMatrix[0].map((_, colIndex) =>
@@ -490,6 +682,7 @@ class GameState {
     this.score += dropDistance * 2;
     this.saveHighScore();
     sfx.playHardDrop();
+    game.triggerScreenShake(false); // Soft shake on hard drop
     this.lockCurrentPiece();
   }
 
@@ -512,6 +705,7 @@ class GameState {
         matrix: def.shape.map(row => [...row]),
         color: def.color,
         highlight: def.highlight,
+        isBomb: !!def.isBomb,
         x: Math.floor((COLS - def.shape[0].length) / 2),
         y: 0
       };
@@ -530,11 +724,18 @@ class GameState {
       x: this.currentPiece.x,
       y: ghostY,
       matrix: this.currentPiece.matrix,
-      color: this.currentPiece.color
+      color: this.currentPiece.color,
+      isBomb: this.currentPiece.isBomb
     };
   }
 
   lockCurrentPiece() {
+    // SPECIAL BOMB EXPLOSION BEHAVIOR
+    if (this.currentPiece.isBomb) {
+      this.detonateBomb(this.currentPiece.x + 1, this.currentPiece.y + 1);
+      return;
+    }
+
     const { matrix, x, y, color } = this.currentPiece;
 
     for (let r = 0; r < matrix.length; r++) {
@@ -558,10 +759,13 @@ class GameState {
     if (cleared > 0) {
       sfx.playLineClear(cleared === 4);
       this.updateLevelAndScore(cleared);
-      ui.triggerBanner(cleared);
+      ui.triggerBanner(cleared, this.comboStreak);
       if (cleared === 4) {
         particles.spawnMegaTetrisBurst(game.renderer.width, game.renderer.height);
+        game.triggerScreenShake(true);
       }
+    } else {
+      this.comboStreak = 0;
     }
 
     this.currentPiece = this.nextPiece;
@@ -573,6 +777,64 @@ class GameState {
     }
   }
 
+  // 3x3 Bomb Detonation Mechanism
+  detonateBomb(centerX, centerY) {
+    sfx.playExplosion();
+    game.triggerScreenShake(true);
+
+    const pixelX = centerX * game.renderer.blockSize;
+    const pixelY = centerY * game.renderer.blockSize;
+    particles.spawnBombExplosion(pixelX, pixelY);
+
+    let destroyedCount = 0;
+    const radius = 2; // Clears 5x5 or 3x3 surrounding grid
+
+    for (let r = centerY - radius; r <= centerY + radius; r++) {
+      for (let c = centerX - radius; c <= centerX + radius; c++) {
+        if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+          if (this.board[r][c] !== 0) {
+            destroyedCount++;
+            this.board[r][c] = 0;
+          }
+        }
+      }
+    }
+
+    // Drop blocks down above cleared bomb explosion area
+    this.collapseFloatingBlocks();
+
+    // Award big explosion blast points
+    const blastBonus = 250 + destroyedCount * 40;
+    this.score += blastBonus;
+    this.saveHighScore();
+    ui.triggerBombBanner(blastBonus, destroyedCount);
+
+    // Spawn next piece
+    this.currentPiece = this.nextPiece;
+    this.nextPiece = this.getNewPiece();
+    this.canHold = true;
+
+    if (this.checkCollision(this.currentPiece, 0, 0)) {
+      this.gameOver();
+    }
+  }
+
+  // Gravity collapse after bomb crater
+  collapseFloatingBlocks() {
+    for (let c = 0; c < COLS; c++) {
+      let emptyY = ROWS - 1;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (this.board[r][c] !== 0) {
+          if (r !== emptyY) {
+            this.board[emptyY][c] = this.board[r][c];
+            this.board[r][c] = 0;
+          }
+          emptyY--;
+        }
+      }
+    }
+  }
+
   clearLines() {
     let linesCleared = 0;
 
@@ -580,7 +842,8 @@ class GameState {
       const isFull = this.board[r].every(cell => cell !== 0);
       if (isFull) {
         linesCleared++;
-        particles.spawnLineBurst(r, game.renderer.blockSize, 24);
+        const rowColors = this.board[r].filter(c => c !== 0);
+        particles.spawnLineBurst(r, game.renderer.blockSize, rowColors);
         this.board.splice(r, 1);
         this.board.unshift(Array(COLS).fill(0));
         r++;
@@ -599,7 +862,7 @@ class GameState {
 }
 
 /* ============================================================================
-   5. RESPONSIVE CANVAS RENDERER (Fluid Block Scaling & Dual Previews)
+   5. RESPONSIVE CANVAS RENDERER (Fluid Scaling & Animated Bomb Glow)
    ============================================================================ */
 class ResponsiveCanvasRenderer {
   constructor(container, canvas, nextCanvas, holdCanvas, holdCanvasMobile) {
@@ -624,26 +887,22 @@ class ResponsiveCanvasRenderer {
     const dpr = window.devicePixelRatio || 1;
     const rect = this.container.getBoundingClientRect();
 
-    // Responsive sizing matching container exactly
     const targetHeight = Math.max(260, Math.floor(rect.height || 600));
-    const targetWidth = Math.floor(targetHeight / 2); // 1:2 aspect ratio
+    const targetWidth = Math.floor(targetHeight / 2);
 
     this.width = targetWidth;
     this.height = targetHeight;
     this.blockSize = targetHeight / ROWS;
 
-    // Set pixel dimensions with Retina HiDPI scale
     this.canvas.width = Math.floor(targetWidth * dpr);
     this.canvas.height = Math.floor(targetHeight * dpr);
     this.ctx.resetTransform?.();
     this.ctx.scale(dpr, dpr);
 
-    // Particle canvas resize
     if (particles) {
       particles.resize(targetWidth, targetHeight, dpr);
     }
 
-    // Resize Next Preview canvas
     const nextRect = this.nextCanvas.parentElement.getBoundingClientRect();
     const nextSize = Math.max(60, Math.floor(nextRect.width || 100));
     this.nextCanvas.width = nextSize * dpr;
@@ -652,7 +911,6 @@ class ResponsiveCanvasRenderer {
     this.nextCtx.scale(dpr, dpr);
     this.nextSize = nextSize;
 
-    // Resize Desktop Hold Canvas
     if (this.holdCanvas) {
       const holdRect = this.holdCanvas.parentElement.getBoundingClientRect();
       const holdSize = Math.max(60, Math.floor(holdRect.width || 100));
@@ -663,7 +921,6 @@ class ResponsiveCanvasRenderer {
       this.holdSize = holdSize;
     }
 
-    // Resize Mobile Hold Canvas
     if (this.holdCanvasMobile) {
       const holdMobRect = this.holdCanvasMobile.parentElement.getBoundingClientRect();
       const holdMobSize = Math.max(50, Math.floor(holdMobRect.width || 70));
@@ -692,10 +949,8 @@ class ResponsiveCanvasRenderer {
       }
     }
 
-    // Previews
     this.renderPreview(gameState.nextPiece, this.nextCtx, this.nextSize || 90, this.nextSize || 90);
 
-    // Render both Desktop and Mobile Hold previews
     if (this.holdCtx && this.holdSize) {
       this.renderHold(gameState.holdPiece, this.holdCtx, this.holdSize, this.holdSize);
     }
@@ -737,22 +992,26 @@ class ResponsiveCanvasRenderer {
   }
 
   drawPiece(piece, context, size) {
-    const { matrix, x, y, color } = piece;
+    const { matrix, x, y, color, isBomb } = piece;
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c] !== 0) {
-          this.drawCandyBlock(context, (x + c) * size, (y + r) * size, size, color);
+          if (isBomb) {
+            this.drawBombBlock(context, (x + c) * size, (y + r) * size, size);
+          } else {
+            this.drawCandyBlock(context, (x + c) * size, (y + r) * size, size, color);
+          }
         }
       }
     }
   }
 
   drawGhostPiece(ghost) {
-    const { matrix, x, y, color } = ghost;
+    const { matrix, x, y, color, isBomb } = ghost;
     this.ctx.save();
-    this.ctx.strokeStyle = color;
+    this.ctx.strokeStyle = isBomb ? '#ff2a2a' : color;
     this.ctx.lineWidth = 1.5;
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+    this.ctx.fillStyle = isBomb ? 'rgba(255, 42, 42, 0.12)' : 'rgba(255, 255, 255, 0.06)';
 
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
@@ -761,7 +1020,7 @@ class ResponsiveCanvasRenderer {
           const py = (y + r) * this.blockSize + 1.5;
           const s = this.blockSize - 3;
 
-          this.drawRoundedRect(this.ctx, px, py, s, s, Math.max(3, s * 0.2));
+          this.drawRoundedRect(this.ctx, px, py, s, s, Math.max(3, s * 0.22));
           this.ctx.fill();
           this.ctx.stroke();
         }
@@ -778,26 +1037,65 @@ class ResponsiveCanvasRenderer {
     const bs = size - pad * 2;
     const radius = Math.max(3, bs * 0.22);
 
-    // Base rounded pill
     this.drawRoundedRect(ctx, bx, by, bs, bs, radius);
     ctx.fillStyle = color;
     ctx.fill();
 
-    // 3D shadow bottom
     ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
     this.drawRoundedRect(ctx, bx + 1, by + bs - Math.max(2, bs * 0.16), bs - 2, Math.max(2, bs * 0.14), 2);
     ctx.fill();
 
-    // Glossy top shine capsule
     ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
     this.drawRoundedRect(ctx, bx + 2, by + 2, bs - 4, (bs - 4) * 0.4, Math.max(2, radius * 0.6));
     ctx.fill();
 
-    // Sparkling corner dot
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.beginPath();
     ctx.arc(bx + bs - Math.max(3, bs * 0.2), by + Math.max(3, bs * 0.2), Math.max(1, bs * 0.07), 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.restore();
+  }
+
+  // Draw Glowing Animated Bomb Block with Pulsing Fuse & Skull/Star
+  drawBombBlock(ctx, x, y, size) {
+    ctx.save();
+    const pad = Math.max(1, size * 0.05);
+    const bx = x + pad;
+    const by = y + pad;
+    const bs = size - pad * 2;
+    const radius = Math.max(4, bs * 0.3);
+
+    // Pulsing glowing red base
+    const pulse = (Math.sin(Date.now() * 0.008) + 1) / 2; // 0 to 1
+    const glowAlpha = 0.4 + pulse * 0.4;
+
+    ctx.shadowColor = `rgba(255, 42, 42, ${glowAlpha})`;
+    ctx.shadowBlur = 8 + pulse * 8;
+
+    this.drawRoundedRect(ctx, bx, by, bs, bs, radius);
+    ctx.fillStyle = '#e60000';
+    ctx.fill();
+    ctx.shadowBlur = 0; // Reset shadow
+
+    // Inner dark circle like an arcade bomb
+    ctx.fillStyle = '#990000';
+    ctx.beginPath();
+    ctx.arc(bx + bs / 2, by + bs / 2, bs * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sizzling yellow spark on top
+    ctx.fillStyle = pulse > 0.5 ? '#ffff00' : '#ff9900';
+    ctx.beginPath();
+    ctx.arc(bx + bs * 0.7, by + bs * 0.3, bs * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Center cute spark icon
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.floor(bs * 0.5)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💣', bx + bs / 2, by + bs / 2 + 1);
 
     ctx.restore();
   }
@@ -830,7 +1128,11 @@ class ResponsiveCanvasRenderer {
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c] !== 0) {
-          this.drawCandyBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize, piece.color);
+          if (piece.isBomb) {
+            this.drawBombBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize);
+          } else {
+            this.drawCandyBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize, piece.color);
+          }
         }
       }
     }
@@ -851,7 +1153,11 @@ class ResponsiveCanvasRenderer {
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c] !== 0) {
-          this.drawCandyBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize, def.color);
+          if (def.isBomb) {
+            this.drawBombBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize);
+          } else {
+            this.drawCandyBlock(ctx, offsetX + c * blockSize, offsetY + r * blockSize, blockSize, def.color);
+          }
         }
       }
     }
@@ -859,7 +1165,7 @@ class ResponsiveCanvasRenderer {
 }
 
 /* ============================================================================
-   6. UI CONTROLLER & OVERLAYS MANAGEMENT
+   6. UI CONTROLLER & DYNAMIC BOMB POPUP OVERLAYS
    ============================================================================ */
 class UIController {
   constructor() {
@@ -887,7 +1193,7 @@ class UIController {
     this.scoreElem.textContent = state.score.toLocaleString();
     this.highScoreElem.textContent = state.highScore.toLocaleString();
     this.levelElem.textContent = state.level;
-    
+
     if (this.linesElem) this.linesElem.textContent = state.linesCleared;
     if (this.linesElemMobile) this.linesElemMobile.textContent = state.linesCleared;
 
@@ -937,17 +1243,18 @@ class UIController {
     this.gameOverOverlay.classList.add('hidden');
   }
 
-  triggerBanner(lines) {
+  triggerBanner(lines, combo = 1) {
     if (!this.floatingBanner) return;
     clearTimeout(this.bannerTimeout);
 
     const labels = {
-      1: 'YAY! +100 ⭐',
-      2: 'AWESOME! +300 🌈',
+      1: combo > 1 ? `${combo}x COMBO! 🔥 +${100 + (combo - 1) * 50}` : 'YAY! +100 ⭐',
+      2: combo > 1 ? `${combo}x DOUBLE! ⚡ +${300 + (combo - 1) * 50}` : 'AWESOME! +300 🌈',
       3: 'SUPER COMBO! +500 🚀',
       4: 'MEGA TETRIS! +800 ★🎉'
     };
 
+    this.floatingBanner.className = 'floating-banner';
     this.floatingBanner.textContent = labels[lines] || `+${lines * 100} ✨`;
     this.floatingBanner.classList.remove('hidden');
 
@@ -956,6 +1263,21 @@ class UIController {
     this.bannerTimeout = setTimeout(() => {
       this.floatingBanner.classList.add('hidden');
     }, 1200);
+  }
+
+  triggerBombBanner(bonus, destroyedCount) {
+    if (!this.floatingBanner) return;
+    clearTimeout(this.bannerTimeout);
+
+    this.floatingBanner.className = 'floating-banner bomb-banner';
+    this.floatingBanner.textContent = `BOOM! 💣 +${bonus} (${destroyedCount} Blocks!)`;
+    this.floatingBanner.classList.remove('hidden');
+
+    void this.floatingBanner.offsetWidth;
+
+    this.bannerTimeout = setTimeout(() => {
+      this.floatingBanner.classList.add('hidden');
+    }, 1400);
   }
 }
 
@@ -1019,9 +1341,26 @@ class TetrisGame {
     this.dropCounter = 0;
     this.animationFrameId = null;
 
+    this.shakeTimeout = null;
+
     this.bindEvents();
     this.ui.showStart();
     this.renderer.render(this.state);
+  }
+
+  triggerScreenShake(isHeavy = false) {
+    if (!this.container) return;
+    clearTimeout(this.shakeTimeout);
+
+    this.container.classList.remove('screen-shake', 'soft-shake');
+    void this.container.offsetWidth;
+
+    const className = isHeavy ? 'screen-shake' : 'soft-shake';
+    this.container.classList.add(className);
+
+    this.shakeTimeout = setTimeout(() => {
+      this.container.classList.remove('screen-shake', 'soft-shake');
+    }, isHeavy ? 350 : 200);
   }
 
   start() {
@@ -1084,7 +1423,6 @@ class TetrisGame {
   }
 
   bindEvents() {
-    // Window Resize with Debounce
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
@@ -1094,7 +1432,6 @@ class TetrisGame {
       }, 100);
     });
 
-    // Desktop Keydown
     window.addEventListener('keydown', e => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();

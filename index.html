@@ -1,289 +1,399 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>WebTetris Edge | Fun Responsive Arcade Adventure</title>
-  <meta name="description" content="A joyful, colorful, and fully responsive child-friendly Tetris game for Desktop, Tablet, and Mobile devices." />
-  <meta name="theme-color" content="#1b1035" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>WebTetris Edge | Fun Responsive Arcade Adventure</title>
+    <meta
+      name="description"
+      content="A joyful, colorful, and fully responsive child-friendly Tetris game with Candy Bombs, block explosions, and celebratory particles!"
+    />
+    <meta name="theme-color" content="#1b1035" />
 
-  <!-- Playful Google Fonts: Fredoka & Outfit -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Playful Google Fonts: Fredoka & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <!-- Floating Whimsical Background Bubbles & Stars -->
-  <div class="sky-bubbles" aria-hidden="true">
-    <div class="bubble b1"></div>
-    <div class="bubble b2"></div>
-    <div class="bubble b3"></div>
-    <div class="bubble b4"></div>
-    <div class="bubble b5"></div>
-    <div class="star s1">★</div>
-    <div class="star s2">✦</div>
-    <div class="star s3">★</div>
-    <div class="star s4">✦</div>
-    <div class="star s5">★</div>
-  </div>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Floating Whimsical Background Bubbles & Stars -->
+    <div class="sky-bubbles" aria-hidden="true">
+      <div class="bubble b1"></div>
+      <div class="bubble b2"></div>
+      <div class="bubble b3"></div>
+      <div class="bubble b4"></div>
+      <div class="bubble b5"></div>
+      <div class="star s1">★</div>
+      <div class="star s2">✦</div>
+      <div class="star s3">★</div>
+      <div class="star s4">✦</div>
+      <div class="star s5">★</div>
+    </div>
 
-  <div class="app-container" id="app-container">
-    <!-- Top Navigation Header -->
-    <header class="app-header">
-      <div class="brand">
-        <div class="logo-mascot">
-          <span class="mascot-block b-pink"></span>
-          <span class="mascot-block b-yellow"></span>
-          <span class="mascot-block b-cyan"></span>
-          <span class="mascot-block b-green"></span>
-        </div>
-        <div class="brand-text">
-          <h1>WebTetris <span class="accent-badge">FUN!</span></h1>
-          <span class="sub-badge">⭐ Arcade Edition ⭐</span>
-        </div>
-      </div>
-
-      <div class="header-actions">
-        <button id="audio-toggle-btn" class="candy-btn icon-btn" title="Toggle Sound (M)" aria-label="Toggle Sound">
-          <span id="audio-icon" class="btn-icon">🔊</span>
-          <span class="btn-label">Music</span>
-        </button>
-        <button id="pause-btn" class="candy-btn icon-btn" title="Pause Game (P/Esc)" aria-label="Pause Game">
-          <span id="pause-icon" class="btn-icon">⏸️</span>
-          <span class="btn-label">Pause</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Main Game Arena -->
-    <main class="game-arena" id="game-arena">
-      <!-- Left Panel: Score, Best Score, Level (Flank in mobile) -->
-      <aside class="panel stats-panel" id="stats-panel">
-        <!-- Pocket / Hold in mobile flank (shown on small screens) -->
-        <div class="candy-card preview-card mobile-only-card" id="mobile-hold-card">
-          <div class="card-icon-row">
-            <span class="stat-emoji">🎒</span>
-            <span class="card-label">POCKET</span>
+    <div class="app-container" id="app-container">
+      <!-- Top Navigation Header -->
+      <header class="app-header">
+        <div class="brand">
+          <div class="logo-mascot">
+            <span class="mascot-block b-pink"></span>
+            <span class="mascot-block b-yellow"></span>
+            <span class="mascot-block b-cyan"></span>
+            <span class="mascot-block b-green"></span>
           </div>
-          <div class="preview-box mini-box">
-            <canvas id="hold-canvas-mobile" width="80" height="80"></canvas>
+          <div class="brand-text">
+            <h1>WebTetris <span class="accent-badge">FUN!</span></h1>
+            <span class="sub-badge">💣 Candy Bomb Edition 💣</span>
           </div>
         </div>
 
-        <div class="candy-card stat-card primary-stat">
-          <div class="card-icon-row">
-            <span class="stat-emoji">⭐</span>
-            <span class="card-label">SCORE</span>
-          </div>
-          <span id="score-display" class="card-value glow-text">0</span>
+        <div class="header-actions">
+          <button
+            id="audio-toggle-btn"
+            class="candy-btn icon-btn"
+            title="Toggle Sound (M)"
+            aria-label="Toggle Sound"
+          >
+            <span id="audio-icon" class="btn-icon">🔊</span>
+            <span class="btn-label">Music</span>
+          </button>
+          <button
+            id="pause-btn"
+            class="candy-btn icon-btn"
+            title="Pause Game (P/Esc)"
+            aria-label="Pause Game"
+          >
+            <span id="pause-icon" class="btn-icon">⏸️</span>
+            <span class="btn-label">Pause</span>
+          </button>
         </div>
+      </header>
 
-        <div class="candy-card stat-card trophy-stat">
-          <div class="card-icon-row">
-            <span class="stat-emoji">🏆</span>
-            <span class="card-label">BEST</span>
-          </div>
-          <span id="highscore-display" class="card-value highlight-text">0</span>
-        </div>
-
-        <div class="candy-card stat-card level-stat">
-          <div class="card-icon-row">
-            <span class="stat-emoji">🚀</span>
-            <span class="card-label">LEVEL</span>
-          </div>
-          <div class="level-container">
-            <span id="level-display" class="card-value">1</span>
-            <span id="speed-indicator" class="speed-tag">Cruising!</span>
-          </div>
-          <!-- Cute Candy Progress Bar -->
-          <div class="level-progress-bar">
-            <div id="level-progress-fill" class="progress-fill" style="width: 0%;"></div>
-          </div>
-        </div>
-
-        <div class="candy-card stat-card lines-stat desktop-only-card">
-          <div class="card-icon-row">
-            <span class="stat-emoji">🌈</span>
-            <span class="card-label">LINES</span>
-          </div>
-          <span id="lines-display" class="card-value">0</span>
-        </div>
-      </aside>
-
-      <!-- Center: Main Tetris Matrix Canvas & Overlays -->
-      <section class="canvas-wrapper" id="canvas-wrapper">
-        <div class="canvas-container" id="canvas-container">
-          <canvas id="tetris-canvas"></canvas>
-
-          <!-- Confetti & Star Sparkles Overlay Canvas -->
-          <canvas id="particles-canvas"></canvas>
-
-          <!-- Floating Cheerful Score & Combo Banner -->
-          <div id="floating-banner" class="floating-banner hidden"></div>
-
-          <!-- UI Overlay: Start Screen -->
-          <div id="start-overlay" class="overlay">
-            <div class="overlay-content candy-modal bounce-in">
-              <div class="mascot-face">🎉</div>
-              <div class="modal-badge">READY FOR FUN?</div>
-              <h2 class="overlay-title">Block Adventure!</h2>
-              <p class="overlay-desc">Drop cute blocks, make magic lines, and celebrate big combos!</p>
-
-              <div class="controls-summary">
-                <div class="ctrl-row"><kbd>←</kbd> <kbd>→</kbd> <span>Slide</span></div>
-                <div class="ctrl-row"><kbd>↑</kbd> <span>Spin & Rotate</span></div>
-                <div class="ctrl-row"><kbd>↓</kbd> <span>Gentle Drop</span></div>
-                <div class="ctrl-row"><kbd>Space</kbd> <span>Super Drop! ⚡</span></div>
-                <div class="ctrl-row"><kbd>C</kbd> <span>Pocket / Hold 🎒</span></div>
-              </div>
-
-              <button id="start-game-btn" class="play-big-btn wobble-hover">
-                LET'S PLAY! 🚀
-              </button>
-            </div>
-          </div>
-
-          <!-- UI Overlay: Pause Screen -->
-          <div id="pause-overlay" class="overlay hidden">
-            <div class="overlay-content candy-modal">
-              <div class="mascot-face">💤</div>
-              <h2 class="overlay-title">Nap Time!</h2>
-              <p class="overlay-desc">Take a little breather! Your blocks are resting safely.</p>
-              <div class="modal-actions">
-                <button id="resume-game-btn" class="play-big-btn">CONTINUE! ▶️</button>
-                <button id="restart-from-pause-btn" class="candy-btn-secondary">TRY AGAIN 🔄</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- UI Overlay: Game Over Screen -->
-          <div id="gameover-overlay" class="overlay hidden">
-            <div class="overlay-content candy-modal bounce-in">
-              <div class="mascot-face">🌟</div>
-              <div class="modal-badge celebrate-badge">AWESOME TRY!</div>
-              <h2 class="overlay-title">You Did Great!</h2>
-              
-              <!-- Star rating visual reward -->
-              <div class="star-rating" id="star-rating">
-                <span class="star-award">⭐</span>
-                <span class="star-award">⭐</span>
-                <span class="star-award">⭐</span>
-              </div>
-
-              <div class="gameover-stats">
-                <div class="stat-pill">
-                  <span class="pill-label">FINAL SCORE</span>
-                  <span id="final-score" class="pill-value">0</span>
-                </div>
-                <div class="stat-pill">
-                  <span class="pill-label">LEVEL</span>
-                  <span id="final-level" class="pill-value">1</span>
-                </div>
-                <div class="stat-pill">
-                  <span class="pill-label">LINES</span>
-                  <span id="final-lines" class="pill-value">0</span>
-                </div>
-              </div>
-
-              <!-- Friendly Leaderboard submission form -->
-              <div class="leaderboard-section">
-                <label for="player-name-input" class="input-label">Save to Star Hall of Fame: ✨</label>
-                <div class="input-group">
-                  <input type="text" id="player-name-input" placeholder="Your Hero Name" maxlength="15" autocomplete="off" />
-                  <button id="submit-score-btn" class="action-btn">Save! 🏅</button>
-                </div>
-                <p id="leaderboard-feedback" class="status-msg hidden"></p>
-              </div>
-
-              <button id="play-again-btn" class="play-big-btn wobble-hover">
-                PLAY AGAIN! 🎈
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Right Panel: Next Up, Hold (Desktop), Lines (Mobile) -->
-      <aside class="panel preview-panel" id="preview-panel">
-        <!-- Next Piece Preview -->
-        <div class="candy-card preview-card">
-          <div class="card-icon-row">
-            <span class="stat-emoji">👀</span>
-            <span class="card-label">NEXT UP</span>
-          </div>
-          <div class="preview-box">
-            <canvas id="next-canvas" width="100" height="100"></canvas>
-          </div>
-        </div>
-
-        <!-- Hold Piece (Desktop) -->
-        <div class="candy-card preview-card desktop-only-card">
-          <div class="card-header-row">
+      <!-- Main Game Arena -->
+      <main class="game-arena" id="game-arena">
+        <!-- Left Panel: Score, Best Score, Level (Flank in mobile) -->
+        <aside class="panel stats-panel" id="stats-panel">
+          <!-- Pocket / Hold in mobile flank -->
+          <div
+            class="candy-card preview-card mobile-only-card"
+            id="mobile-hold-card"
+          >
             <div class="card-icon-row">
               <span class="stat-emoji">🎒</span>
               <span class="card-label">POCKET</span>
             </div>
-            <span class="key-hint"><kbd>C</kbd></span>
+            <div class="preview-box mini-box">
+              <canvas id="hold-canvas-mobile" width="80" height="80"></canvas>
+            </div>
           </div>
-          <div class="preview-box">
-            <canvas id="hold-canvas" width="100" height="100"></canvas>
+
+          <div class="candy-card stat-card primary-stat">
+            <div class="card-icon-row">
+              <span class="stat-emoji">⭐</span>
+              <span class="card-label">SCORE</span>
+            </div>
+            <span id="score-display" class="card-value glow-text">0</span>
           </div>
+
+          <div class="candy-card stat-card trophy-stat">
+            <div class="card-icon-row">
+              <span class="stat-emoji">🏆</span>
+              <span class="card-label">BEST</span>
+            </div>
+            <span id="highscore-display" class="card-value highlight-text"
+              >0</span
+            >
+          </div>
+
+          <div class="candy-card stat-card level-stat">
+            <div class="card-icon-row">
+              <span class="stat-emoji">🚀</span>
+              <span class="card-label">LEVEL</span>
+            </div>
+            <div class="level-container">
+              <span id="level-display" class="card-value">1</span>
+              <span id="speed-indicator" class="speed-tag">Cruising!</span>
+            </div>
+            <div class="level-progress-bar">
+              <div
+                id="level-progress-fill"
+                class="progress-fill"
+                style="width: 0%"
+              ></div>
+            </div>
+          </div>
+
+          <div class="candy-card stat-card lines-stat desktop-only-card">
+            <div class="card-icon-row">
+              <span class="stat-emoji">🌈</span>
+              <span class="card-label">LINES</span>
+            </div>
+            <span id="lines-display" class="card-value">0</span>
+          </div>
+        </aside>
+
+        <!-- Center: Main Tetris Matrix Canvas & Overlays -->
+        <section class="canvas-wrapper" id="canvas-wrapper">
+          <div class="canvas-container" id="canvas-container">
+            <canvas id="tetris-canvas"></canvas>
+
+            <!-- Confetti, Shockwave & Particle Overlay Canvas -->
+            <canvas id="particles-canvas"></canvas>
+
+            <!-- Floating Cheerful Score & Combo Banner -->
+            <div id="floating-banner" class="floating-banner hidden"></div>
+
+            <!-- UI Overlay: Start Screen -->
+            <div id="start-overlay" class="overlay">
+              <div class="overlay-content candy-modal bounce-in">
+                <div class="mascot-face">💣</div>
+                <div class="modal-badge">BOMB & COMBO EDITION</div>
+                <h2 class="overlay-title">Block Adventure!</h2>
+                <p class="overlay-desc">
+                  Drop cute blocks, blast obstacles with
+                  <strong>Candy Bombs 💣</strong>, and trigger mega combos!
+                </p>
+
+                <div class="controls-summary">
+                  <div class="ctrl-row">
+                    <kbd>←</kbd> <kbd>→</kbd> <span>Slide</span>
+                  </div>
+                  <div class="ctrl-row">
+                    <kbd>↑</kbd> <span>Spin & Rotate</span>
+                  </div>
+                  <div class="ctrl-row">
+                    <kbd>↓</kbd> <span>Gentle Drop</span>
+                  </div>
+                  <div class="ctrl-row">
+                    <kbd>Space</kbd> <span>Super Drop! ⚡</span>
+                  </div>
+                  <div class="ctrl-row">
+                    <kbd>C</kbd> <span>Pocket / Hold 🎒</span>
+                  </div>
+                  <div class="ctrl-row">
+                    <span>💣 <strong>Candy Bomb</strong></span>
+                    <span style="color: #ffbe0b">Blasts 3x3 Area!</span>
+                  </div>
+                </div>
+
+                <button id="start-game-btn" class="play-big-btn wobble-hover">
+                  LET'S PLAY! 🚀
+                </button>
+              </div>
+            </div>
+
+            <!-- UI Overlay: Pause Screen -->
+            <div id="pause-overlay" class="overlay hidden">
+              <div class="overlay-content candy-modal">
+                <div class="mascot-face">💤</div>
+                <h2 class="overlay-title">Nap Time!</h2>
+                <p class="overlay-desc">
+                  Take a little breather! Your blocks are resting safely.
+                </p>
+                <div class="modal-actions">
+                  <button id="resume-game-btn" class="play-big-btn">
+                    CONTINUE! ▶️
+                  </button>
+                  <button
+                    id="restart-from-pause-btn"
+                    class="candy-btn-secondary"
+                  >
+                    TRY AGAIN 🔄
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- UI Overlay: Game Over Screen -->
+            <div id="gameover-overlay" class="overlay hidden">
+              <div class="overlay-content candy-modal bounce-in">
+                <div class="mascot-face">🌟</div>
+                <div class="modal-badge celebrate-badge">AWESOME TRY!</div>
+                <h2 class="overlay-title">You Did Great!</h2>
+
+                <div class="star-rating" id="star-rating">
+                  <span class="star-award">⭐</span>
+                  <span class="star-award">⭐</span>
+                  <span class="star-award">⭐</span>
+                </div>
+
+                <div class="gameover-stats">
+                  <div class="stat-pill">
+                    <span class="pill-label">FINAL SCORE</span>
+                    <span id="final-score" class="pill-value">0</span>
+                  </div>
+                  <div class="stat-pill">
+                    <span class="pill-label">LEVEL</span>
+                    <span id="final-level" class="pill-value">1</span>
+                  </div>
+                  <div class="stat-pill">
+                    <span class="pill-label">LINES</span>
+                    <span id="final-lines" class="pill-value">0</span>
+                  </div>
+                </div>
+
+                <div class="leaderboard-section">
+                  <label for="player-name-input" class="input-label"
+                    >Save to Star Hall of Fame: ✨</label
+                  >
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      id="player-name-input"
+                      placeholder="Your Hero Name"
+                      maxlength="15"
+                      autocomplete="off"
+                    />
+                    <button id="submit-score-btn" class="action-btn">
+                      Save! 🏅
+                    </button>
+                  </div>
+                  <p id="leaderboard-feedback" class="status-msg hidden"></p>
+                </div>
+
+                <button id="play-again-btn" class="play-big-btn wobble-hover">
+                  PLAY AGAIN! 🎈
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Panel: Next Up, Hold (Desktop), Lines (Mobile) -->
+        <aside class="panel preview-panel" id="preview-panel">
+          <div class="candy-card preview-card">
+            <div class="card-icon-row">
+              <span class="stat-emoji">👀</span>
+              <span class="card-label">NEXT UP</span>
+            </div>
+            <div class="preview-box">
+              <canvas id="next-canvas" width="100" height="100"></canvas>
+            </div>
+          </div>
+
+          <div class="candy-card preview-card desktop-only-card">
+            <div class="card-header-row">
+              <div class="card-icon-row">
+                <span class="stat-emoji">🎒</span>
+                <span class="card-label">POCKET</span>
+              </div>
+              <span class="key-hint"><kbd>C</kbd></span>
+            </div>
+            <div class="preview-box">
+              <canvas id="hold-canvas" width="100" height="100"></canvas>
+            </div>
+          </div>
+
+          <div class="candy-card stat-card lines-stat mobile-only-card">
+            <div class="card-icon-row">
+              <span class="stat-emoji">🌈</span>
+              <span class="card-label">LINES</span>
+            </div>
+            <span id="lines-display-mobile" class="card-value">0</span>
+          </div>
+
+          <div class="candy-card controls-card desktop-only-card">
+            <div class="card-icon-row controls-header">
+              <span class="stat-emoji">🎮</span>
+              <span class="card-label">CONTROLS</span>
+            </div>
+            <ul class="key-list">
+              <li class="key-item">
+                <span class="action-name">Move</span>
+                <span class="key-combo"><kbd>←</kbd><kbd>→</kbd></span>
+              </li>
+              <li class="key-item">
+                <span class="action-name">Rotate</span>
+                <span class="key-combo"><kbd>↑</kbd></span>
+              </li>
+              <li class="key-item">
+                <span class="action-name">Soft Drop</span>
+                <span class="key-combo"><kbd>↓</kbd></span>
+              </li>
+              <li class="key-item">
+                <span class="action-name">Super Drop</span>
+                <span class="key-combo"><kbd>Space</kbd></span>
+              </li>
+              <li class="key-item">
+                <span class="action-name">Pocket</span>
+                <span class="key-combo"><kbd>C</kbd></span>
+              </li>
+            </ul>
+            <div class="bomb-tip-pill">
+              <span class="bomb-icon">💣</span>
+              <span class="bomb-desc"><strong>Candy Bomb</strong> clears 3×3!</span>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <!-- Ergonomic Mobile Touch Controls -->
+      <section class="touch-controls" id="touch-controls">
+        <div class="touch-group touch-movement">
+          <button
+            id="touch-left"
+            class="touch-btn dpad-btn"
+            aria-label="Move Left"
+          >
+            ◀
+          </button>
+          <button
+            id="touch-down"
+            class="touch-btn dpad-btn"
+            aria-label="Soft Drop"
+          >
+            ▼
+          </button>
+          <button
+            id="touch-right"
+            class="touch-btn dpad-btn"
+            aria-label="Move Right"
+          >
+            ▶
+          </button>
         </div>
 
-        <!-- Lines Cleared in Mobile Flank -->
-        <div class="candy-card stat-card lines-stat mobile-only-card">
-          <div class="card-icon-row">
-            <span class="stat-emoji">🌈</span>
-            <span class="card-label">LINES</span>
-          </div>
-          <span id="lines-display-mobile" class="card-value">0</span>
+        <div class="touch-group touch-actions">
+          <button
+            id="touch-hold"
+            class="touch-btn key-hold"
+            aria-label="Pocket Piece"
+          >
+            🎒 POCKET
+          </button>
+          <button
+            id="touch-rotate"
+            class="touch-btn key-rotate"
+            aria-label="Spin Piece"
+          >
+            🔄 SPIN
+          </button>
+          <button
+            id="touch-hard-drop"
+            class="touch-btn key-drop"
+            aria-label="Super Drop"
+          >
+            ⚡ DROP!
+          </button>
         </div>
+      </section>
 
-        <!-- Controls Legend (Desktop Only) -->
-        <div class="candy-card controls-card desktop-only-card">
-          <div class="card-icon-row">
-            <span class="stat-emoji">🎮</span>
-            <span class="card-label">CONTROLS</span>
-          </div>
-          <ul class="key-list">
-            <li><span>Move</span> <span class="keys"><kbd>←</kbd><kbd>→</kbd></span></li>
-            <li><span>Rotate</span> <span class="keys"><kbd>↑</kbd></span></li>
-            <li><span>Soft Drop</span> <span class="keys"><kbd>↓</kbd></span></li>
-            <li><span>Hard Drop</span> <span class="keys"><kbd>Space</kbd></span></li>
-            <li><span>Pocket</span> <span class="keys"><kbd>C</kbd></span></li>
-            <li><span>Pause</span> <span class="keys"><kbd>P</kbd></span></li>
-          </ul>
-        </div>
-      </aside>
-    </main>
+      <!-- Footer -->
+      <footer class="app-footer">
+        <p>
+          Built with ❤️ • Created by
+          <span class="cf-tag"> rbeverything.com </span>
+        </p>
+      </footer>
+    </div>
 
-    <!-- Ergonomic Handheld Mobile Touch Controls (Thumb-friendly) -->
-    <section class="touch-controls" id="touch-controls">
-      <!-- Left Hand Group (Movement D-Pad) -->
-      <div class="touch-group touch-movement">
-        <button id="touch-left" class="touch-btn dpad-btn" aria-label="Move Left">◀</button>
-        <button id="touch-down" class="touch-btn dpad-btn" aria-label="Soft Drop">▼</button>
-        <button id="touch-right" class="touch-btn dpad-btn" aria-label="Move Right">▶</button>
-      </div>
-
-      <!-- Right Hand Group (Action Buttons) -->
-      <div class="touch-group touch-actions">
-        <button id="touch-hold" class="touch-btn key-hold" aria-label="Pocket Piece">🎒 POCKET</button>
-        <button id="touch-rotate" class="touch-btn key-rotate" aria-label="Spin Piece">🔄 SPIN</button>
-        <button id="touch-hard-drop" class="touch-btn key-drop" aria-label="Super Drop">⚡ DROP!</button>
-      </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="app-footer">
-      <p>
-        Built with ❤️ • Hosted on <span class="cf-tag">Cloudflare Pages</span>
-      </p>
-    </footer>
-  </div>
-
-  <script src="script.js"></script>
-</body>
+    <script src="script.js"></script>
+  </body>
 </html>
