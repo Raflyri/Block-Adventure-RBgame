@@ -1,7 +1,0 @@
-name = "rblock-adventure"
-compatibility_date = "2024-09-01"
-pages_build_output_dir = "."
-
-[[kv_namespaces]]
-binding = "LEADERBOARD_KV"
-id = "34ef57b3352d4c33be32011129153f20"
