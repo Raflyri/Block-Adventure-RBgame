@@ -2078,10 +2078,10 @@ class LeaderboardService {
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.leaderboard)) {
-          this.isOnline = data.source === 'cloudflare_kv';
+          this.isOnline = data.source === 'cloudflare_d1' || data.source === 'cloudflare_kv';
           return {
             scores: data.leaderboard,
-            source: data.source || 'cloudflare_kv'
+            source: data.source || 'cloudflare_d1'
           };
         }
       }
@@ -2115,7 +2115,7 @@ class LeaderboardService {
         return {
           success: true,
           rank: data.rank,
-          message: data.message || `Luar biasa! Skor tersimpan di Cloudflare KV! 🌟`
+          message: data.message || `Luar biasa! Skor tersimpan di Cloudflare D1! 🌟`
         };
       }
     } catch (err) {
@@ -2639,7 +2639,7 @@ class RBlockGame {
       submitBtn.textContent = 'Menyimpan... ✨';
 
       feedbackMsg.className = 'status-msg';
-      feedbackMsg.textContent = 'Menghubungkan ke Cloudflare KV...';
+      feedbackMsg.textContent = 'Menghubungkan ke Cloudflare D1...';
       feedbackMsg.classList.remove('hidden');
 
       const modeToSubmit = this.state.mode === GameMode.DAILY ? 'daily' : 'classic';
@@ -2692,9 +2692,9 @@ class RBlockGame {
     const { scores, source } = await LeaderboardService.fetchScores(this.currentLbMode);
 
     if (statusPill) {
-      if (source === 'cloudflare_kv') {
+      if (source === 'cloudflare_d1' || source === 'cloudflare_kv') {
         statusPill.className = 'status-pill online';
-        statusPill.textContent = '🟢 Cloudflare KV Online';
+        statusPill.textContent = '🟢 Cloudflare D1 Online';
       } else {
         statusPill.className = 'status-pill offline';
         statusPill.textContent = '🟡 Rekor Lokal';

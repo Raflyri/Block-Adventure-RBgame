@@ -27,10 +27,10 @@
   - **📅 Daily Challenge (Tantangan Harian)**: Teka-teki harian berbasis *PRNG seed* tanggal dunia (`YYYY-MM-DD`). Seluruh pemain di dunia mendapatkan tantangan dan urutan balok yang sama persis! Lengkap dengan pelacak *Daily Streak*.
   - **🧩 Puzzle Stages (10 Level Teka-Teki)**: 10 stage tantangan unik bertahap dengan antrian balok terbatas untuk melatih strategi.
 
-- 🏆 **Multi-Mode Global Online Leaderboard (Cloudflare Pages Functions + Cloudflare KV)**:
-  - Rekor skor tersimpan persisten di database edge serverless **Cloudflare KV (`LEADERBOARD_KV`)**.
+- 🏆 **Multi-Mode Global Online Leaderboard (Cloudflare Pages Functions + Cloudflare D1 SQL)**:
+  - Rekor skor tersimpan persisten di database SQL edge serverless **Cloudflare D1 (`DB`)**.
   - Tab terpisah untuk **🏆 Rekor Klasik** dan **📅 Juara Harian (Daily)**.
-  - Indikator status koneksi real-time: `🟢 Cloudflare KV Online` atau `🟡 Mode Lokal`.
+  - Indikator status koneksi real-time: `🟢 Cloudflare D1 Online` atau `🟡 Mode Lokal`.
 
 - 👆 **Kontrol Sentuh Langsung di Layar (Direct Touch & Swipe Gestures)**:
   - **Geser Kiri/Kanan**: Seret atau geser jari langsung di atas arena bermain untuk menggeser balok secara presisi.
@@ -162,15 +162,15 @@ Game ini siap di-deploy secara instan (*Zero-Config*):
    - Isi **Build output directory** dengan `/` (atau biarkan *root*).
    - Klik **Save and Deploy**.
 
-2. **Menghubungkan Database Cloudflare KV (Untuk Global Leaderboard)**:
-   - Di Cloudflare Dashboard, buka **Workers & Pages > KV**.
-   - Buat KV Namespace baru: `RBLOCK_LEADERBOARD`.
-   - Buka proyek Pages Anda > **Settings > Functions > KV namespace bindings**.
+2. **Menghubungkan Cloudflare D1 Database (Untuk Global Leaderboard)**:
+   - Di Cloudflare Dashboard, buka **Storage & Databases > D1 SQL Database**.
+   - Buat database baru: `rblock-leaderboard`.
+   - Buka proyek Pages Anda > **Settings > Bindings** (atau **Functions > D1 database bindings**).
    - Tambahkan binding:
-     - **Variable name**: `LEADERBOARD_KV`
-     - **KV namespace**: Pilih namespace yang sudah dibuat.
-   - Panduan visual lengkap langkah demi langkah dapat dibaca di: **[CLOUDFLARE_LEADERBOARD_GUIDE.md](CLOUDFLARE_LEADERBOARD_GUIDE.md)**.
-   - Klik **Save**. Rekor pemain di seluruh dunia kini tersimpan permanen!
+     - **Variable name**: `DB` (atau `LEADERBOARD_DB`)
+     - **D1 database**: Pilih database `rblock-leaderboard` yang sudah dibuat.
+   - Panduan visual lengkap langkah demi langkah dapat dibaca di: **[CLOUDFLARE_D1_GUIDE.md](CLOUDFLARE_D1_GUIDE.md)**.
+   - Klik **Save**. Rekor pemain di seluruh dunia kini tersimpan permanen di database SQL!
 
 3. **Melalui Wrangler CLI**:
    ```bash
@@ -185,14 +185,15 @@ Game ini siap di-deploy secara instan (*Zero-Config*):
 rblock-adventure/
 ├── functions/
 │   └── api/
-│       └── leaderboard.js              # Serverless Cloudflare Pages Function (KV API)
+│       └── leaderboard.js              # Serverless Cloudflare Pages Function (D1 SQL API)
+├── schema.sql                          # Skema tabel SQL untuk Cloudflare D1 Database
 ├── icon.svg                            # Maskable Vector Icon PWA 512x512
 ├── manifest.webmanifest                # PWA App Manifest & Metadata
 ├── sw.js                               # Service Worker Cerdas (Cache-First & Offline)
 ├── index.html                          # UI Overlays, Fixed Modals, & Canvas
 ├── style.css                           # Design System 4 Tema, Responsive & Controls
 ├── script.js                           # Engine RBlock, Multi-Mode, Gamepad & Touch
-├── CLOUDFLARE_LEADERBOARD_GUIDE.md     # Panduan Konfigurasi KV Cloudflare Lengkap
+├── CLOUDFLARE_D1_GUIDE.md              # Panduan Konfigurasi Cloudflare D1 Database
 ├── RELEASE_NOTES.md                    # Catatan riwayat pembaruan (Changelog) lengkap
 ├── .gitignore                          # Daftar berkas yang diabaikan oleh Git
 └── README.md                           # Dokumentasi resmi proyek

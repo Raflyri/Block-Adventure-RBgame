@@ -6,7 +6,8 @@ Catatan riwayat pembaruan (*changelog*) komprehensif dari awal pembuatan proyek 
 
 ## 🏷️ Ringkasan Versi
 
-- [v2.0.0](#v200---pwa-offline-themes-modes--multi-leaderboard) — **PWA, Themes, Game Modes & Multi-Leaderboard** *(Terkini)*
+- [v2.1.0](#v210---migrasi-cloudflare-d1-database--self-healing-schema) — **Migrasi Cloudflare D1 Database & Self-Healing Schema** *(Terkini)*
+- [v2.0.0](#v200---pwa-offline-themes-modes--multi-leaderboard) — **PWA, Themes, Game Modes & Multi-Leaderboard**
 - [v1.7.0](#v170---global-leaderboard-cloudflare-pages-functions--kv) — **Global Leaderboard (Cloudflare Pages Functions & KV)**
 - [v1.6.0](#v160---rebranding-rblock-adventure--direct-touch-gestures) — **Rebranding "RBlock Adventure" & Gestur Sentuh Layar Langsung**
 - [v1.5.0](#v150---penyempurnaan-candy-bomb-11--level-scaling-fuse) — **Penyempurnaan Candy Bomb 1×1 & Durasi Dinamis**
@@ -15,6 +16,25 @@ Catatan riwayat pembaruan (*changelog*) komprehensif dari awal pembuatan proyek 
 - [v1.2.0](#v120---desain-100-responsif-desktop-tablet--mobile) — **Desain 100% Responsif & Kontrol Mobile**
 - [v1.1.0](#v110---redesain-ceria--child-friendly-candy-edition) — **Redesain Ceria & Child-Friendly (Candy Edition)**
 - [v1.0.0](#v100---fondasi-awal-permainan) — **Fondasi Awal Permainan**
+
+## [v2.1.0] - Migrasi Cloudflare D1 Database & Self-Healing Schema
+*Tanggal Rilis: 8 September 2026*
+
+### 🌟 Pembaruan Backend Database:
+- **Migrasi Penuh ke Cloudflare D1 Database (SQL Serverless)**:
+  - Menggantikan sistem penyimpanan KV dengan **Cloudflare D1 Database** yang berbasis SQLite/SQL relasional.
+  - Tabel `leaderboard` dengan kolom terstruktur (`name`, `score`, `mode`, `date`, `created_at`) dan indexing komposit pada `(mode, score DESC)`.
+  - Fleksibilitas binding: mendeteksi otomatis variabel `DB`, `LEADERBOARD_DB`, maupun `D1_DATABASE`.
+- **Self-Healing & Auto-Seeding Schema**:
+  - Backend `/api/leaderboard` mengeksekusi `CREATE TABLE IF NOT EXISTS` dan `CREATE INDEX IF NOT EXISTS` secara otomatis tanpa wajib dijalankan manual di dashboard.
+  - Otomatis menyuntikkan skor awal (*champion starters*) jika tabel masih kosong.
+- **Skema Terpisah & Panduan D1**:
+  - Menyediakan berkas `schema.sql` untuk kemudahan eksekusi manual via Cloudflare D1 Console.
+  - Menyediakan panduan lengkap `CLOUDFLARE_D1_GUIDE.md`.
+- **Status UI Real-time**:
+  - Indikator koneksi diperbarui menjadi `🟢 Cloudflare D1 Online` dengan fallback anggun (*graceful fallback*) ke rekor lokal browser.
+
+---
 
 ## [v2.0.0] - PWA, Themes, Game Modes & Multi-Leaderboard
 *Tanggal Rilis: 8 September 2026*

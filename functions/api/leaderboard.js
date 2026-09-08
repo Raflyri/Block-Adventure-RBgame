@@ -3,7 +3,7 @@
  * Cloudflare Pages Function: /api/leaderboard
  * Handles GET (fetching Top 10) and POST (submitting a new highscore)
  * Supports Multi-Mode: Classic & Daily Challenge
- * Powered by Cloudflare KV (Binding name: LEADERBOARD_KV)
+ * Powered by Cloudflare D1 Database (Binding name: DB or LEADERBOARD_DB)
  * ============================================================================
  */
 
@@ -25,13 +25,6 @@ const DEFAULT_DAILY_LEADERBOARD = [
   { name: "PuzzleAce", score: 2900, date: new Date().toISOString() }
 ];
 
-const CLASSIC_KV_KEY = "RBLOCK_TOP_SCORES";
-
-function getDailyKVKey(dateStr) {
-  const d = dateStr || new Date().toISOString().slice(0, 10);
-  return `RBLOCK_DAILY_${d}`;
-}
-
 // CORS Headers helper
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +32,65 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type",
   "Content-Type": "application/json"
 };
+
+/**
+ * Helper: Resolve D1 Database instance from environment
+ * Checks 'DB', 'LEADERBOARD_DB', 'D1_DATABASE', or 'd1'
+ */
+function getDatabase(env) {
+  if (!env) return null;
+  return env.DB || env.LEADERBOARD_DB || env.D1_DATABASE || env.d1 || null;
+}
+
+/**
+ * Self-healing: Ensure table and index exist in D1 automatically
+ */
+async function ensureTable(db) {
+  if (!db) return;
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS leaderboard (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        score INTEGER NOT NULL,
+        mode TEXT NOT NULL DEFAULT 'classic',
+        date TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+
+    await db.prepare(`
+      CREATE INDEX IF NOT EXISTS idx_leaderboard_mode_score ON leaderboard(mode, score DESC)
+    `).run();
+  } catch (err) {
+    console.error("ensureTable warning:", err);
+  }
+}
+
+/**
+ * Seed starter champion scores if table is empty for the mode
+ */
+async function seedStarterScoresIfEmpty(db, mode) {
+  if (!db) return;
+  try {
+    const countCheck = await db
+      .prepare("SELECT COUNT(*) as total FROM leaderboard WHERE mode = ?")
+      .bind(mode)
+      .first();
+
+    if (countCheck && countCheck.total === 0) {
+      const starters = mode === "daily" ? DEFAULT_DAILY_LEADERBOARD : DEFAULT_CLASSIC_LEADERBOARD;
+      const statements = starters.map((item) =>
+        db
+          .prepare("INSERT INTO leaderboard (name, score, mode, date) VALUES (?, ?, ?, ?)")
+          .bind(item.name, item.score, mode, item.date || new Date().toISOString())
+      );
+      await db.batch(statements);
+    }
+  } catch (err) {
+    console.error("seedStarterScoresIfEmpty warning:", err);
+  }
+}
 
 /**
  * Handle OPTIONS preflight requests
@@ -51,34 +103,39 @@ export async function onRequestOptions() {
 }
 
 /**
- * Handle GET requests - Retrieve Top 10 Scores for requested mode
+ * Handle GET requests - Retrieve Top 10 Scores from D1 for requested mode
  * ?mode=classic (default) or ?mode=daily
  */
 export async function onRequestGet(context) {
   try {
-    const kv = context.env ? context.env.LEADERBOARD_KV : null;
+    const db = getDatabase(context.env);
     const url = new URL(context.request.url);
     const mode = url.searchParams.get("mode") === "daily" ? "daily" : "classic";
     const dateQuery = url.searchParams.get("date") || new Date().toISOString().slice(0, 10);
-
-    const kvKey = mode === "daily" ? getDailyKVKey(dateQuery) : CLASSIC_KV_KEY;
     const defaultList = mode === "daily" ? DEFAULT_DAILY_LEADERBOARD : DEFAULT_CLASSIC_LEADERBOARD;
 
     let scores = null;
 
-    if (kv) {
-      const data = await kv.get(kvKey, { type: "json" });
-      if (Array.isArray(data) && data.length > 0) {
-        scores = data;
+    if (db) {
+      await ensureTable(db);
+      await seedStarterScoresIfEmpty(db, mode);
+
+      let query = "SELECT name, score, date FROM leaderboard WHERE mode = ? ORDER BY score DESC LIMIT 10";
+      let params = [mode];
+
+      if (mode === "daily") {
+        query = "SELECT name, score, date FROM leaderboard WHERE mode = ? AND date LIKE ? ORDER BY score DESC LIMIT 10";
+        params = [mode, `${dateQuery}%`];
+      }
+
+      const { results } = await db.prepare(query).bind(...params).all();
+      if (Array.isArray(results) && results.length > 0) {
+        scores = results;
       }
     }
 
-    // If KV is not yet initialized or has no data, return default starter list
-    if (!scores) {
+    if (!scores || scores.length === 0) {
       scores = defaultList;
-      if (kv && mode === "classic") {
-        await kv.put(kvKey, JSON.stringify(scores));
-      }
     }
 
     return new Response(
@@ -87,7 +144,7 @@ export async function onRequestGet(context) {
         mode,
         date: mode === "daily" ? dateQuery : null,
         leaderboard: scores.slice(0, 10),
-        source: kv ? "cloudflare_kv" : "mock_starter"
+        source: db ? "cloudflare_d1" : "mock_starter"
       }),
       {
         status: 200,
@@ -102,7 +159,8 @@ export async function onRequestGet(context) {
       JSON.stringify({
         success: false,
         error: error.message || "Failed to retrieve leaderboard",
-        leaderboard: DEFAULT_CLASSIC_LEADERBOARD.slice(0, 10)
+        leaderboard: DEFAULT_CLASSIC_LEADERBOARD.slice(0, 10),
+        source: "error_fallback"
       }),
       { status: 200, headers: corsHeaders }
     );
@@ -110,17 +168,16 @@ export async function onRequestGet(context) {
 }
 
 /**
- * Handle POST requests - Submit a New Highscore (Classic or Daily)
+ * Handle POST requests - Submit a New Highscore to D1 Database
  */
 export async function onRequestPost(context) {
   try {
-    const kv = context.env ? context.env.LEADERBOARD_KV : null;
+    const db = getDatabase(context.env);
     const body = await context.request.json();
 
     const mode = body.mode === "daily" ? "daily" : "classic";
     const todayStr = new Date().toISOString().slice(0, 10);
-    const kvKey = mode === "daily" ? getDailyKVKey(todayStr) : CLASSIC_KV_KEY;
-    const defaultList = mode === "daily" ? DEFAULT_DAILY_LEADERBOARD : DEFAULT_CLASSIC_LEADERBOARD;
+    const nowIso = new Date().toISOString();
 
     // 1. Validation & sanitization
     let name = (body.name || "").toString().trim();
@@ -139,42 +196,52 @@ export async function onRequestPost(context) {
       );
     }
 
-    // 2. Fetch existing scores
-    let scores = [];
-    if (kv) {
-      const data = await kv.get(kvKey, { type: "json" });
-      if (Array.isArray(data)) {
-        scores = data;
-      }
-    }
-
-    if (scores.length === 0) {
-      scores = [...defaultList];
-    }
-
-    // 3. Add new entry
     const newEntry = {
       name,
       score,
-      date: new Date().toISOString()
+      date: nowIso
     };
 
-    scores.push(newEntry);
+    let rank = null;
+    let top10 = [];
 
-    // 4. Sort descending by score
-    scores.sort((a, b) => b.score - a.score);
+    if (db) {
+      await ensureTable(db);
 
-    // 5. Keep top 50
-    scores = scores.slice(0, 50);
+      // Insert record
+      await db
+        .prepare("INSERT INTO leaderboard (name, score, mode, date) VALUES (?, ?, ?, ?)")
+        .bind(name, score, mode, nowIso)
+        .run();
 
-    // Find rank of newly added score
-    const rank = scores.findIndex(
-      (s) => s.name === newEntry.name && s.score === newEntry.score && s.date === newEntry.date
-    ) + 1;
+      // Calculate rank: count of records with higher score + 1
+      let countQuery = "SELECT COUNT(*) as higherCount FROM leaderboard WHERE mode = ? AND score > ?";
+      let countParams = [mode, score];
+      if (mode === "daily") {
+        countQuery = "SELECT COUNT(*) as higherCount FROM leaderboard WHERE mode = ? AND date LIKE ? AND score > ?";
+        countParams = [mode, `${todayStr}%`, score];
+      }
 
-    // 6. Save back to KV
-    if (kv) {
-      await kv.put(kvKey, JSON.stringify(scores));
+      const rankRow = await db.prepare(countQuery).bind(...countParams).first();
+      rank = (rankRow && typeof rankRow.higherCount === "number" ? rankRow.higherCount : 0) + 1;
+
+      // Fetch updated top 10
+      let topQuery = "SELECT name, score, date FROM leaderboard WHERE mode = ? ORDER BY score DESC LIMIT 10";
+      let topParams = [mode];
+      if (mode === "daily") {
+        topQuery = "SELECT name, score, date FROM leaderboard WHERE mode = ? AND date LIKE ? ORDER BY score DESC LIMIT 10";
+        topParams = [mode, `${todayStr}%`];
+      }
+
+      const { results } = await db.prepare(topQuery).bind(...topParams).all();
+      top10 = results || [];
+    } else {
+      // Fallback if D1 is not yet bound
+      const defaultList = mode === "daily" ? DEFAULT_DAILY_LEADERBOARD : DEFAULT_CLASSIC_LEADERBOARD;
+      const combined = [newEntry, ...defaultList];
+      combined.sort((a, b) => b.score - a.score);
+      top10 = combined.slice(0, 10);
+      rank = top10.findIndex((s) => s.name === newEntry.name && s.score === newEntry.score) + 1;
     }
 
     return new Response(
@@ -183,8 +250,12 @@ export async function onRequestPost(context) {
         mode,
         rank: rank > 0 ? rank : null,
         entry: newEntry,
-        leaderboard: scores.slice(0, 10),
-        message: rank <= 10 ? `Luar biasa! Kamu masuk Top 10 ${mode === 'daily' ? 'Harian' : 'Dunia'} (Rank #${rank})!` : `Skor berhasil dicatat!`
+        leaderboard: top10,
+        source: db ? "cloudflare_d1" : "mock_starter",
+        message:
+          rank && rank <= 10
+            ? `Luar biasa! Kamu masuk Top 10 ${mode === "daily" ? "Harian" : "Dunia"} (Rank #${rank})!`
+            : `Skor berhasil dicatat!`
       }),
       { status: 200, headers: corsHeaders }
     );
