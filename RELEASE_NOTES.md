@@ -6,7 +6,8 @@ Catatan riwayat pembaruan (*changelog*) komprehensif dari awal pembuatan proyek 
 
 ## 🏷️ Ringkasan Versi
 
-- [v1.7.0](#v170---global-leaderboard-cloudflare-pages-functions--kv) — **Global Leaderboard (Cloudflare Pages Functions & KV)** *(Terkini)*
+- [v2.0.0](#v200---pwa-offline-themes-modes--multi-leaderboard) — **PWA, Themes, Game Modes & Multi-Leaderboard** *(Terkini)*
+- [v1.7.0](#v170---global-leaderboard-cloudflare-pages-functions--kv) — **Global Leaderboard (Cloudflare Pages Functions & KV)**
 - [v1.6.0](#v160---rebranding-rblock-adventure--direct-touch-gestures) — **Rebranding "RBlock Adventure" & Gestur Sentuh Layar Langsung**
 - [v1.5.0](#v150---penyempurnaan-candy-bomb-11--level-scaling-fuse) — **Penyempurnaan Candy Bomb 1×1 & Durasi Dinamis**
 - [v1.4.0](#v140---efek-ledakan-animasi-pecahan-balok--audio-synthesizer) — **Candy Bomb, Efek Pecahan Balok & SFX Web Audio**
@@ -14,6 +15,30 @@ Catatan riwayat pembaruan (*changelog*) komprehensif dari awal pembuatan proyek 
 - [v1.2.0](#v120---desain-100-responsif-desktop-tablet--mobile) — **Desain 100% Responsif & Kontrol Mobile**
 - [v1.1.0](#v110---redesain-ceria--child-friendly-candy-edition) — **Redesain Ceria & Child-Friendly (Candy Edition)**
 - [v1.0.0](#v100---fondasi-awal-permainan) — **Fondasi Awal Permainan**
+
+## [v2.0.0] - PWA, Themes, Game Modes & Multi-Leaderboard
+*Tanggal Rilis: 8 September 2026*
+
+### 🌟 Fitur Utama & Ekspansi Besar:
+- **PWA (Progressive Web App) & 100% Offline Mode**:
+  - Menyediakan `manifest.webmanifest` lengkap dengan deklarasi ikon vektor maskable (`icon.svg`), tema warna, dan display standalone.
+  - Mengimplementasikan `sw.js` (Service Worker) dengan precaching aset utama (`index.html`, `style.css`, `script.js`, `manifest.webmanifest`, `icon.svg`).
+  - Dukungan tombol instalasi **📲 Install App** dinamis via `beforeinstallprompt`.
+  - Game dapat dimainkan 100% tanpa sambungan internet.
+- **Sistem Tema & Skin Balok (4 Tema Lengkap)**:
+  - 🍬 **Candy Jelly (Default)**: Balok jelly mengkilap ceria dengan bayangan lembut.
+  - ⚡ **Cyber Neon**: Tampilan futuristik gelap dengan balok berpendar neon glow khas synthwave.
+  - 🍃 **Kawaii Pastel**: Warna-warna pastel menenangkan dengan sentuhan sudut manis.
+  - 🕹️ **Retro 8-Bit**: Palet monokrom hijau khas GameBoy 90-an dengan shading bevel piksel tegas.
+  - Modal pemilihan tema visual dengan palet swatch dan penyimpanan persisten di `localStorage`.
+- **Ekspansi Mode Permainan Baru**:
+  - **🎮 Klasik Arcade**: Mode ketangkasan bertahan hidup dengan sistem level dinamis dan Candy Bomb.
+  - **📅 Daily Challenge (Tantangan Harian)**: Teka-teki harian berbasis PRNG seed tanggal dunia (`YYYY-MM-DD`). Semua pemain di seluruh dunia mendapatkan susunan rintangan dan urutan balok yang identik! Dilengkapi pelacak *Daily Streak*.
+  - **🧩 Puzzle Stages (10 Level Tantangan)**: 10 teka-teki bertahap dengan batas antrian balok dan tantangan unik (T-Spin, Candy Bomb Cleanse, Sumur 4-Line, dll.) yang terbuka secara progresif.
+- **Multi-Mode Global Online Leaderboard (Cloudflare Pages Functions & KV)**:
+  - Backend `/api/leaderboard` kini mendukung parameter mode: `?mode=classic` dan `?mode=daily`.
+  - Tab navigasi pemilih rekor di dalam modal: **🏆 Rekor Klasik** dan **📅 Juara Harian**.
+  - Indikator status koneksi real-time: `🟢 Cloudflare KV Online` atau `🟡 Mode Lokal`.
 
 ---
 

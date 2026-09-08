@@ -10,14 +10,34 @@
 
 ---
 
-## ✨ Fitur Utama Terbaru
+## ✨ Fitur Utama Terbaru (v2.0.0)
+
+- 📲 **PWA (Progressive Web App) & 100% Offline Mode**:
+  - Dapat diinstal langsung ke perangkat Android, iOS, Windows, atau macOS layaknya aplikasi *native* via tombol **📲 Install App**.
+  - Didukung `sw.js` (Service Worker) dan `manifest.webmanifest` untuk akses super cepat dan permainan lancar tanpa kuota internet (*offline ready*).
+
+- 🎨 **Sistem 4 Pilihan Tema & Skin Balok**:
+  - 🍬 **Candy Jelly (Default)**: Balok jelly mengkilap warna-warni ceria dengan bayangan lembut.
+  - ⚡ **Cyber Neon**: Pendaran neon glow futuristik dengan kontras tinggi gaya synthwave.
+  - 🍃 **Kawaii Pastel**: Warna-warna pastel menenangkan (*soothing & cozy*).
+  - 🕹️ **Retro 8-Bit**: Palet hijau monokrom khas GameBoy 90-an dengan shading bevel piksel arcade.
+
+- 🎮 **Tiga Mode Permainan Menantang**:
+  - **🎮 Klasik Arcade**: Mode ketangkasan bertahan hidup tak terbatas dengan peningkatan level dan balok *Candy Bomb*.
+  - **📅 Daily Challenge (Tantangan Harian)**: Teka-teki harian berbasis *PRNG seed* tanggal dunia (`YYYY-MM-DD`). Seluruh pemain di dunia mendapatkan tantangan dan urutan balok yang sama persis! Lengkap dengan pelacak *Daily Streak*.
+  - **🧩 Puzzle Stages (10 Level Teka-Teki)**: 10 stage tantangan unik bertahap dengan antrian balok terbatas untuk melatih strategi.
+
+- 🏆 **Multi-Mode Global Online Leaderboard (Cloudflare Pages Functions + Cloudflare KV)**:
+  - Rekor skor tersimpan persisten di database edge serverless **Cloudflare KV (`LEADERBOARD_KV`)**.
+  - Tab terpisah untuk **🏆 Rekor Klasik** dan **📅 Juara Harian (Daily)**.
+  - Indikator status koneksi real-time: `🟢 Cloudflare KV Online` atau `🟡 Mode Lokal`.
 
 - 👆 **Kontrol Sentuh Langsung di Layar (Direct Touch & Swipe Gestures)**:
   - **Geser Kiri/Kanan**: Seret atau geser jari langsung di atas arena bermain untuk menggeser balok secara presisi.
   - **Seret ke Bawah**: Tarik jari ke bawah untuk melakukan *soft drop*.
   - **Flick / Sentakan Cepat ke Bawah**: Sentak jari dengan cepat ke bawah untuk menjatuhkan balok seketika (*Super Drop*).
   - **Ketukan Ringan (*Tap*)**: Ketuk arena layar secara singkat untuk memutar (*rotate*) balok 90°.
-  - **Dukungan Hibrida**: Tetap dilengkapi dengan tombol sentuh D-pad & aksi di bawah layar untuk kenyamanan maksimal saat bermain dengan dua jempol.
+  - **Dukungan Hibrida**: Tetap dilengkapi dengan tombol sentuh D-pad & aksi di bawah layar untuk kenyamanan bermain dengan dua jempol.
 
 - 💣 **Candy Bomb 1×1 Spesial & Durasi Dinamis**:
   - Balok Bom ringkas berukuran **1×1** dengan sumbu menyala (*pulsing fuse*).
@@ -53,12 +73,6 @@
   - Rotasi 90 derajat dengan deteksi benturan dinding (*wall-kick*) agar balok tidak macet di tepi arena.
   - Proyeksi bayangan balok (*ghost piece*) untuk melihat titik jatuh sebelum mendarat.
   - Fitur simpan balok cadangan (*Pocket / Hold*).
-
-- 🏆 **Global Leaderboard (Cloudflare Pages Functions + Cloudflare KV)**:
-  - Rekor skor pemain di seluruh dunia tersimpan secara persisten di database serverless **Cloudflare KV (`LEADERBOARD_KV`)**.
-  - Modal **Global Hall of Fame** dengan medali piala (🥇 Juara 1, 🥈 Juara 2, 🥉 Juara 3), tanggal rekor, dan tombol refresh *real-time*.
-  - Input nama pemain interaktif saat Game Over yang otomatis mengingat nama pemain sebelumnya.
-  - *Smart Local Fallback*: tetap berjalan mulus dengan data cadangan saat dimainkan secara lokal (*offline/localhost*).
 
 ---
 
@@ -154,7 +168,8 @@ Game ini siap di-deploy secara instan (*Zero-Config*):
    - Buka proyek Pages Anda > **Settings > Functions > KV namespace bindings**.
    - Tambahkan binding:
      - **Variable name**: `LEADERBOARD_KV`
-     - **KV namespace**: `RBLOCK_LEADERBOARD`
+     - **KV namespace**: Pilih namespace yang sudah dibuat.
+   - Panduan visual lengkap langkah demi langkah dapat dibaca di: **[CLOUDFLARE_LEADERBOARD_GUIDE.md](CLOUDFLARE_LEADERBOARD_GUIDE.md)**.
    - Klik **Save**. Rekor pemain di seluruh dunia kini tersimpan permanen!
 
 3. **Melalui Wrangler CLI**:
@@ -170,13 +185,17 @@ Game ini siap di-deploy secara instan (*Zero-Config*):
 rblock-adventure/
 ├── functions/
 │   └── api/
-│       └── leaderboard.js # Serverless Cloudflare Pages Function (KV API)
-├── index.html             # Struktur semantik HTML5, UI Overlays, & Leaderboard Modal
-├── style.css              # Sistem desain CSS3 adaptif, tema jelly, & modal ranking
-├── script.js              # Engine RBlock, Touch Gestures, Candy Bomb, & Leaderboard Service
-├── RELEASE_NOTES.md       # Catatan riwayat pembaruan (Changelog) lengkap
-├── .gitignore             # Daftar berkas yang diabaikan oleh Git
-└── README.md              # Dokumentasi resmi proyek
+│       └── leaderboard.js              # Serverless Cloudflare Pages Function (KV API)
+├── icon.svg                            # Maskable Vector Icon PWA 512x512
+├── manifest.webmanifest                # PWA App Manifest & Metadata
+├── sw.js                               # Service Worker Cerdas (Cache-First & Offline)
+├── index.html                          # UI Overlays, Fixed Modals, & Canvas
+├── style.css                           # Design System 4 Tema, Responsive & Controls
+├── script.js                           # Engine RBlock, Multi-Mode, Gamepad & Touch
+├── CLOUDFLARE_LEADERBOARD_GUIDE.md     # Panduan Konfigurasi KV Cloudflare Lengkap
+├── RELEASE_NOTES.md                    # Catatan riwayat pembaruan (Changelog) lengkap
+├── .gitignore                          # Daftar berkas yang diabaikan oleh Git
+└── README.md                           # Dokumentasi resmi proyek
 ```
 
 ---

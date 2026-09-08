@@ -2,12 +2,13 @@
  * ============================================================================
  * Cloudflare Pages Function: /api/leaderboard
  * Handles GET (fetching Top 10) and POST (submitting a new highscore)
+ * Supports Multi-Mode: Classic & Daily Challenge
  * Powered by Cloudflare KV (Binding name: LEADERBOARD_KV)
  * ============================================================================
  */
 
-// Default starter champions for initial leaderboard state or fallback
-const DEFAULT_LEADERBOARD = [
+// Default starter champions for Classic Mode
+const DEFAULT_CLASSIC_LEADERBOARD = [
   { name: "RB_Master", score: 12500, date: "2026-09-01T12:00:00.000Z" },
   { name: "CandyQueen", score: 9800, date: "2026-09-02T14:30:00.000Z" },
   { name: "JellyStar", score: 7450, date: "2026-09-03T09:15:00.000Z" },
@@ -17,7 +18,19 @@ const DEFAULT_LEADERBOARD = [
   { name: "PixelKid", score: 1600, date: "2026-09-04T16:10:00.000Z" }
 ];
 
-const KV_KEY = "RBLOCK_TOP_SCORES";
+// Default starter champions for Daily Challenge
+const DEFAULT_DAILY_LEADERBOARD = [
+  { name: "DailyHero", score: 4800, date: new Date().toISOString() },
+  { name: "SpeedyBlock", score: 3950, date: new Date().toISOString() },
+  { name: "PuzzleAce", score: 2900, date: new Date().toISOString() }
+];
+
+const CLASSIC_KV_KEY = "RBLOCK_TOP_SCORES";
+
+function getDailyKVKey(dateStr) {
+  const d = dateStr || new Date().toISOString().slice(0, 10);
+  return `RBLOCK_DAILY_${d}`;
+}
 
 // CORS Headers helper
 const corsHeaders = {
@@ -38,15 +51,23 @@ export async function onRequestOptions() {
 }
 
 /**
- * Handle GET requests - Retrieve Top 10 Scores
+ * Handle GET requests - Retrieve Top 10 Scores for requested mode
+ * ?mode=classic (default) or ?mode=daily
  */
 export async function onRequestGet(context) {
   try {
     const kv = context.env ? context.env.LEADERBOARD_KV : null;
+    const url = new URL(context.request.url);
+    const mode = url.searchParams.get("mode") === "daily" ? "daily" : "classic";
+    const dateQuery = url.searchParams.get("date") || new Date().toISOString().slice(0, 10);
+
+    const kvKey = mode === "daily" ? getDailyKVKey(dateQuery) : CLASSIC_KV_KEY;
+    const defaultList = mode === "daily" ? DEFAULT_DAILY_LEADERBOARD : DEFAULT_CLASSIC_LEADERBOARD;
+
     let scores = null;
 
     if (kv) {
-      const data = await kv.get(KV_KEY, { type: "json" });
+      const data = await kv.get(kvKey, { type: "json" });
       if (Array.isArray(data) && data.length > 0) {
         scores = data;
       }
@@ -54,16 +75,17 @@ export async function onRequestGet(context) {
 
     // If KV is not yet initialized or has no data, return default starter list
     if (!scores) {
-      scores = DEFAULT_LEADERBOARD;
-      // Auto-initialize KV if binding is available
-      if (kv) {
-        await kv.put(KV_KEY, JSON.stringify(scores));
+      scores = defaultList;
+      if (kv && mode === "classic") {
+        await kv.put(kvKey, JSON.stringify(scores));
       }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
+        mode,
+        date: mode === "daily" ? dateQuery : null,
         leaderboard: scores.slice(0, 10),
         source: kv ? "cloudflare_kv" : "mock_starter"
       }),
@@ -80,7 +102,7 @@ export async function onRequestGet(context) {
       JSON.stringify({
         success: false,
         error: error.message || "Failed to retrieve leaderboard",
-        leaderboard: DEFAULT_LEADERBOARD.slice(0, 10)
+        leaderboard: DEFAULT_CLASSIC_LEADERBOARD.slice(0, 10)
       }),
       { status: 200, headers: corsHeaders }
     );
@@ -88,12 +110,17 @@ export async function onRequestGet(context) {
 }
 
 /**
- * Handle POST requests - Submit a New Highscore
+ * Handle POST requests - Submit a New Highscore (Classic or Daily)
  */
 export async function onRequestPost(context) {
   try {
     const kv = context.env ? context.env.LEADERBOARD_KV : null;
     const body = await context.request.json();
+
+    const mode = body.mode === "daily" ? "daily" : "classic";
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const kvKey = mode === "daily" ? getDailyKVKey(todayStr) : CLASSIC_KV_KEY;
+    const defaultList = mode === "daily" ? DEFAULT_DAILY_LEADERBOARD : DEFAULT_CLASSIC_LEADERBOARD;
 
     // 1. Validation & sanitization
     let name = (body.name || "").toString().trim();
@@ -115,14 +142,14 @@ export async function onRequestPost(context) {
     // 2. Fetch existing scores
     let scores = [];
     if (kv) {
-      const data = await kv.get(KV_KEY, { type: "json" });
+      const data = await kv.get(kvKey, { type: "json" });
       if (Array.isArray(data)) {
         scores = data;
       }
     }
 
     if (scores.length === 0) {
-      scores = [...DEFAULT_LEADERBOARD];
+      scores = [...defaultList];
     }
 
     // 3. Add new entry
@@ -147,16 +174,17 @@ export async function onRequestPost(context) {
 
     // 6. Save back to KV
     if (kv) {
-      await kv.put(KV_KEY, JSON.stringify(scores));
+      await kv.put(kvKey, JSON.stringify(scores));
     }
 
     return new Response(
       JSON.stringify({
         success: true,
+        mode,
         rank: rank > 0 ? rank : null,
         entry: newEntry,
         leaderboard: scores.slice(0, 10),
-        message: rank <= 10 ? `Luar biasa! Kamu masuk Top 10 (Rank #${rank})!` : `Skor berhasil dicatat!`
+        message: rank <= 10 ? `Luar biasa! Kamu masuk Top 10 ${mode === 'daily' ? 'Harian' : 'Dunia'} (Rank #${rank})!` : `Skor berhasil dicatat!`
       }),
       { status: 200, headers: corsHeaders }
     );

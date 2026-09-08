@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#3d1e75"/>
+      <stop offset="60%" stop-color="#1b1035"/>
+      <stop offset="100%" stop-color="#0f0721"/>
+    </radialGradient>
+
+    <!-- Candy Shines -->
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Block Gradients -->
+    <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff758f"/>
+      <stop offset="100%" stop-color="#ff4d6d"/>
+    </linearGradient>
+
+    <linearGradient id="yellowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe066"/>
+      <stop offset="100%" stop-color="#ffbe0b"/>
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64f5ff"/>
+      <stop offset="100%" stop-color="#00e5ff"/>
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#52f2c5"/>
+      <stop offset="100%" stop-color="#06d6a0"/>
+    </linearGradient>
+
+    <linearGradient id="bombGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff5c5c"/>
+      <stop offset="100%" stop-color="#ff2a2a"/>
+    </linearGradient>
+
+    <!-- Soft Drop Shadow -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Base App Background with Rounded Corners -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)"/>
+
+  <!-- Subtle Outer Border Glow -->
+  <rect width="504" height="504" x="4" y="4" rx="106" fill="none" stroke="#ffbe0b" stroke-opacity="0.3" stroke-width="8"/>
+
+  <!-- Centered Block Group with Drop Shadow -->
+  <g filter="url(#dropShadow)">
+    <!-- Cyan Block (Left) -->
+    <rect x="100" y="196" width="100" height="100" rx="24" fill="url(#cyanGrad)"/>
+    <rect x="108" y="204" width="84" height="40" rx="16" fill="url(#shine)"/>
+
+    <!-- Pink Block (Center-Left) -->
+    <rect x="206" y="196" width="100" height="100" rx="24" fill="url(#pinkGrad)"/>
+    <rect x="214" y="204" width="84" height="40" rx="16" fill="url(#shine)"/>
+
+    <!-- Yellow Block (Center-Top) -->
+    <rect x="206" y="90" width="100" height="100" rx="24" fill="url(#yellowGrad)"/>
+    <rect x="214" y="98" width="84" height="40" rx="16" fill="url(#shine)"/>
+
+    <!-- Green Block (Center-Right) -->
+    <rect x="312" y="196" width="100" height="100" rx="24" fill="url(#greenGrad)"/>
+    <rect x="320" y="204" width="84" height="40" rx="16" fill="url(#shine)"/>
+
+    <!-- Candy Bomb Block (Center Bottom) -->
+    <rect x="206" y="302" width="100" height="100" rx="24" fill="url(#bombGrad)"/>
+    <rect x="214" y="310" width="84" height="40" rx="16" fill="url(#shine)"/>
+    <!-- Bomb Fuse & Spark -->
+    <path d="M 256 302 Q 256 280 270 275" fill="none" stroke="#fcd34d" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="272" cy="273" r="10" fill="#fff" filter="drop-shadow(0 0 6px #ffbe0b)"/>
+    <!-- Bomb Icon Symbol -->
+    <text x="256" y="368" font-size="46" text-anchor="middle" font-family="sans-serif">💣</text>
+  </g>
+
+  <!-- Stars and sparkles -->
+  <text x="100" y="130" font-size="36" fill="#ffbe0b" opacity="0.9">★</text>
+  <text x="410" y="140" font-size="30" fill="#00e5ff" opacity="0.8">✦</text>
+  <text x="395" y="380" font-size="36" fill="#ffbe0b" opacity="0.9">★</text>
+  <text x="110" y="370" font-size="28" fill="#a370f7" opacity="0.8">✦</text>
+
+  <!-- Floating Text Badge at Bottom -->
+  <g transform="translate(256, 442)">
+    <rect x="-140" y="-22" width="280" height="44" rx="22" fill="#2d1a54" stroke="#ffbe0b" stroke-width="3"/>
+    <text x="0" y="7" font-family="'Fredoka', 'Segoe UI', cursive, sans-serif" font-weight="bold" font-size="22" fill="#ffffff" text-anchor="middle" letter-spacing="1">RBLOCK ADV</text>
+  </g>
+</svg>

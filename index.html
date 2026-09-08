@@ -9,9 +9,16 @@
     <title>RBlock Adventure | Fun Responsive Arcade Game</title>
     <meta
       name="description"
-      content="A joyful, colorful, and fully responsive block arcade adventure with Candy Bombs, touch swipe gestures, and celebratory particles!"
+      content="A joyful, colorful, and fully responsive block arcade adventure with Candy Bombs, touch swipe gestures, themes, daily challenges, and celebratory particles!"
     />
     <meta name="theme-color" content="#1b1035" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- PWA Manifest & App Icons -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="apple-touch-icon" href="icon.svg" />
 
     <!-- Playful Google Fonts: Fredoka & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -50,11 +57,29 @@
           </div>
           <div class="brand-text">
             <h1>RBlock <span class="accent-badge">ADVENTURE</span></h1>
-            <span class="sub-badge">💣 Candy Bomb Edition 💣</span>
+            <span class="sub-badge" id="header-sub-badge">💣 Candy Bomb Edition 💣</span>
           </div>
         </div>
 
         <div class="header-actions">
+          <button
+            id="install-pwa-btn"
+            class="candy-btn icon-btn install-btn hidden"
+            title="Pasang Aplikasi (PWA)"
+            aria-label="Pasang Aplikasi"
+          >
+            <span class="btn-icon">📲</span>
+            <span class="btn-label">Install</span>
+          </button>
+          <button
+            id="theme-btn"
+            class="candy-btn icon-btn"
+            title="Pilih Tema / Skin Balok (T)"
+            aria-label="Pilih Tema"
+          >
+            <span class="btn-icon">🎨</span>
+            <span class="btn-label">Tema</span>
+          </button>
           <button
             id="leaderboard-btn"
             class="candy-btn icon-btn"
@@ -87,7 +112,7 @@
 
       <!-- Main Game Arena -->
       <main class="game-arena" id="game-arena">
-        <!-- Left Panel: Score, Best Score, Level (Flank in mobile) -->
+        <!-- Left Panel: Score, Best Score, Level, Mode Info -->
         <aside class="panel stats-panel" id="stats-panel">
           <!-- Pocket / Hold in mobile flank -->
           <div
@@ -101,6 +126,16 @@
             <div class="preview-box mini-box">
               <canvas id="hold-canvas-mobile" width="80" height="80"></canvas>
             </div>
+          </div>
+
+          <!-- Dynamic Mode Objective Card (for Daily / Puzzle) -->
+          <div id="mode-objective-card" class="candy-card stat-card objective-card hidden">
+            <div class="card-icon-row">
+              <span class="stat-emoji" id="objective-emoji">🎯</span>
+              <span class="card-label" id="objective-title">TARGET</span>
+            </div>
+            <span id="objective-value" class="card-value highlight-text">0 / 15</span>
+            <span id="objective-sub" class="speed-tag">Sisa Balok: ∞</span>
           </div>
 
           <div class="candy-card stat-card primary-stat">
@@ -148,7 +183,7 @@
           </div>
         </aside>
 
-        <!-- Center: Main Game Matrix Canvas & Overlays -->
+        <!-- Center: Main Game Matrix Canvas -->
         <section class="canvas-wrapper" id="canvas-wrapper">
           <div class="canvas-container" id="canvas-container">
             <canvas id="rblock-canvas"></canvas>
@@ -158,124 +193,6 @@
 
             <!-- Floating Cheerful Score & Combo Banner -->
             <div id="floating-banner" class="floating-banner hidden"></div>
-
-            <!-- UI Overlay: Start Screen -->
-            <div id="start-overlay" class="overlay">
-              <div class="overlay-content candy-modal bounce-in">
-                <div class="mascot-face">🚀</div>
-                <div class="modal-badge">RBLOCK ADVENTURE</div>
-                <h2 class="overlay-title">Ready to Play?</h2>
-                <p class="overlay-desc">
-                  Stack cute candy blocks, swipe directly on screen to move, and blast obstacles with
-                  <strong>Candy Bombs 💣</strong>!
-                </p>
-
-                <div class="controls-summary">
-                  <div class="ctrl-row">
-                    <kbd>←</kbd> <kbd>→</kbd> / <span>Drag on Screen</span>
-                  </div>
-                  <div class="ctrl-row">
-                    <kbd>↑</kbd> / <span>Tap Screen to Spin</span>
-                  </div>
-                  <div class="ctrl-row">
-                    <kbd>↓</kbd> / <span>Drag Down (Soft Drop)</span>
-                  </div>
-                  <div class="ctrl-row">
-                    <kbd>Space</kbd> / <span>Flick Down (Super Drop)</span>
-                  </div>
-                  <div class="ctrl-row">
-                    <kbd>C</kbd> <span>Pocket / Hold 🎒</span>
-                  </div>
-                  <div class="ctrl-row">
-                    <span>💣 <strong>1×1 Candy Bomb</strong></span>
-                    <span style="color: #ffbe0b">Timed 3×3 Blast!</span>
-                  </div>
-                </div>
-
-                <button id="start-game-btn" class="play-big-btn wobble-hover">
-                  LET'S PLAY! 🚀
-                </button>
-              </div>
-            </div>
-
-            <!-- UI Overlay: Pause Screen -->
-            <div id="pause-overlay" class="overlay hidden">
-              <div class="overlay-content candy-modal">
-                <div class="mascot-face">💤</div>
-                <h2 class="overlay-title">Nap Time!</h2>
-                <p class="overlay-desc">
-                  Take a little breather! Your blocks are resting safely.
-                </p>
-                <div class="modal-actions">
-                  <button id="resume-game-btn" class="play-big-btn">
-                    CONTINUE! ▶️
-                  </button>
-                  <button
-                    id="restart-from-pause-btn"
-                    class="candy-btn-secondary"
-                  >
-                    TRY AGAIN 🔄
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- UI Overlay: Game Over Screen -->
-            <div id="gameover-overlay" class="overlay hidden">
-              <div class="overlay-content candy-modal bounce-in">
-                <div class="mascot-face">🌟</div>
-                <div class="modal-badge celebrate-badge">AWESOME TRY!</div>
-                <h2 class="overlay-title">You Did Great!</h2>
-
-                <div class="star-rating" id="star-rating">
-                  <span class="star-award">⭐</span>
-                  <span class="star-award">⭐</span>
-                  <span class="star-award">⭐</span>
-                </div>
-
-                <div class="gameover-stats">
-                  <div class="stat-pill">
-                    <span class="pill-label">FINAL SCORE</span>
-                    <span id="final-score" class="pill-value">0</span>
-                  </div>
-                  <div class="stat-pill">
-                    <span class="pill-label">LEVEL</span>
-                    <span id="final-level" class="pill-value">1</span>
-                  </div>
-                  <div class="stat-pill">
-                    <span class="pill-label">LINES</span>
-                    <span id="final-lines" class="pill-value">0</span>
-                  </div>
-                </div>
-
-                <div class="leaderboard-section">
-                  <label for="player-name-input" class="input-label"
-                    >Save to Star Hall of Fame: ✨</label
-                  >
-                  <div class="input-group">
-                    <input
-                      type="text"
-                      id="player-name-input"
-                      placeholder="Nama Kamu"
-                      maxlength="12"
-                      autocomplete="off"
-                    />
-                    <button id="submit-score-btn" class="action-btn">
-                      Simpan 🏅
-                    </button>
-                  </div>
-                  <p id="leaderboard-feedback" class="status-msg hidden"></p>
-                </div>
-
-                <button id="view-leaderboard-from-gameover-btn" class="candy-btn-secondary" style="margin-bottom: 10px; width: 100%;">
-                  🏆 Lihat Rekor Dunia
-                </button>
-
-                <button id="play-again-btn" class="play-big-btn wobble-hover">
-                  PLAY AGAIN! 🎈
-                </button>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -398,13 +315,268 @@
         </div>
       </section>
 
-      <!-- UI Overlay: Global Leaderboard Modal (Fixed Viewport Level) -->
+      <!-- ==================================================================
+           FULL-SCREEN MODAL OVERLAYS (Fixed Viewport, Centered & Fit)
+           ================================================================== -->
+
+      <!-- UI Overlay: Start Screen with Mode Tabs -->
+      <div id="start-overlay" class="overlay">
+        <div class="overlay-content candy-modal bounce-in start-modal-content">
+          <div class="mascot-face" id="start-mascot">🚀</div>
+          <div class="modal-badge">RBLOCK ADVENTURE v2.0</div>
+          <h2 class="overlay-title" id="start-title">Ready to Play?</h2>
+
+          <!-- Game Mode Switcher Tabs -->
+          <div class="mode-tabs-container">
+            <button class="mode-tab-btn active" data-mode="classic" id="tab-classic">
+              🎮 Klasik
+            </button>
+            <button class="mode-tab-btn" data-mode="daily" id="tab-daily">
+              📅 Daily
+            </button>
+            <button class="mode-tab-btn" data-mode="puzzle" id="tab-puzzle">
+              🧩 Puzzle
+            </button>
+          </div>
+
+          <!-- Mode Info Description Container -->
+          <div class="mode-desc-card" id="mode-desc-card">
+            <p class="overlay-desc" id="mode-desc-text">
+              Mode arcade murni tak terbatas! Susun balok permen, pecahkan rekor tertinggi, dan gunakan
+              <strong>Candy Bomb 💣</strong>.
+            </p>
+            <div id="puzzle-stage-picker" class="stage-picker hidden">
+              <span class="stage-label">Pilih Stage:</span>
+              <div class="stage-buttons-row" id="stage-buttons-container">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+            <div id="daily-streak-badge" class="daily-streak-badge hidden">
+              🔥 Daily Streak: <span id="daily-streak-count">0</span> Hari
+            </div>
+          </div>
+
+          <!-- Compact 2-Column Controls Summary Grid -->
+          <div class="controls-summary-grid">
+            <div class="ctrl-grid-item">
+              <div class="ctrl-keys"><kbd>←</kbd><kbd>→</kbd></div>
+              <span class="ctrl-text">Geser / Drag</span>
+            </div>
+            <div class="ctrl-grid-item">
+              <div class="ctrl-keys"><kbd>↑</kbd></div>
+              <span class="ctrl-text">Putar / Tap</span>
+            </div>
+            <div class="ctrl-grid-item">
+              <div class="ctrl-keys"><kbd>↓</kbd></div>
+              <span class="ctrl-text">Soft Drop</span>
+            </div>
+            <div class="ctrl-grid-item">
+              <div class="ctrl-keys"><kbd>Space</kbd></div>
+              <span class="ctrl-text">Super Drop ⚡</span>
+            </div>
+            <div class="ctrl-grid-item">
+              <div class="ctrl-keys"><kbd>C</kbd></div>
+              <span class="ctrl-text">Pocket 🎒</span>
+            </div>
+            <div class="ctrl-grid-item bomb-item">
+              <div class="ctrl-keys">💣</div>
+              <span class="ctrl-text">1×1 Blast 3×3!</span>
+            </div>
+          </div>
+
+          <button id="start-game-btn" class="play-big-btn wobble-hover">
+            LET'S PLAY! 🚀
+          </button>
+        </div>
+      </div>
+
+      <!-- UI Overlay: Pause Screen -->
+      <div id="pause-overlay" class="overlay hidden">
+        <div class="overlay-content candy-modal">
+          <div class="mascot-face">💤</div>
+          <h2 class="overlay-title">Nap Time!</h2>
+          <p class="overlay-desc">
+            Take a little breather! Your blocks are resting safely.
+          </p>
+          <div class="modal-actions">
+            <button id="resume-game-btn" class="play-big-btn">
+              CONTINUE! ▶️
+            </button>
+            <button
+              id="restart-from-pause-btn"
+              class="candy-btn-secondary"
+            >
+              TRY AGAIN 🔄
+            </button>
+            <button
+              id="menu-from-pause-btn"
+              class="candy-btn-secondary"
+            >
+              MAIN MENU 🏠
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UI Overlay: Game Over Screen -->
+      <div id="gameover-overlay" class="overlay hidden">
+        <div class="overlay-content candy-modal bounce-in">
+          <div class="mascot-face" id="gameover-mascot">🌟</div>
+          <div class="modal-badge celebrate-badge" id="gameover-badge">AWESOME TRY!</div>
+          <h2 class="overlay-title" id="gameover-title">You Did Great!</h2>
+
+          <div class="star-rating" id="star-rating">
+            <span class="star-award">⭐</span>
+            <span class="star-award">⭐</span>
+            <span class="star-award">⭐</span>
+          </div>
+
+          <div class="gameover-stats">
+            <div class="stat-pill">
+              <span class="pill-label">FINAL SCORE</span>
+              <span id="final-score" class="pill-value">0</span>
+            </div>
+            <div class="stat-pill">
+              <span class="pill-label" id="final-middle-label">LEVEL</span>
+              <span id="final-level" class="pill-value">1</span>
+            </div>
+            <div class="stat-pill">
+              <span class="pill-label">LINES</span>
+              <span id="final-lines" class="pill-value">0</span>
+            </div>
+          </div>
+
+          <!-- Leaderboard Save Section (for Classic & Daily) -->
+          <div class="leaderboard-section" id="leaderboard-save-section">
+            <label for="player-name-input" class="input-label"
+              >Save to Star Hall of Fame: ✨</label
+            >
+            <div class="input-group">
+              <input
+                type="text"
+                id="player-name-input"
+                placeholder="Nama Kamu"
+                maxlength="12"
+                autocomplete="off"
+              />
+              <button id="submit-score-btn" class="action-btn">
+                Simpan 🏅
+              </button>
+            </div>
+            <p id="leaderboard-feedback" class="status-msg hidden"></p>
+          </div>
+
+          <button id="next-stage-btn" class="play-big-btn next-stage-btn wobble-hover hidden" style="margin-bottom: 8px;">
+            STAGE BERIKUTNYA ⏩
+          </button>
+
+          <button id="choose-stage-btn" class="candy-btn-secondary hidden" style="margin-bottom: 8px; width: 100%;">
+            🧩 Pilih Stage Lain
+          </button>
+
+          <button id="view-leaderboard-from-gameover-btn" class="candy-btn-secondary" style="margin-bottom: 8px; width: 100%;">
+            🏆 Lihat Rekor Dunia
+          </button>
+
+          <button id="play-again-btn" class="play-big-btn wobble-hover">
+            PLAY AGAIN! 🎈
+          </button>
+
+          <button id="menu-from-gameover-btn" class="candy-btn-secondary" style="margin-top: 8px; width: 100%;">
+            MAIN MENU 🏠
+          </button>
+        </div>
+      </div>
+
+      <!-- UI Overlay: Theme Selector Modal -->
+      <div id="theme-overlay" class="overlay hidden">
+        <div class="overlay-content candy-modal bounce-in theme-modal-box">
+          <div class="mascot-face">🎨</div>
+          <div class="modal-badge">SKIN & VISUALS</div>
+          <h2 class="overlay-title">Pilih Tema Favorit</h2>
+          <p class="overlay-desc">Ubah suasana visual dan gaya balok sesuai seleramu!</p>
+
+          <div class="theme-grid">
+            <button class="theme-card active" data-theme="candy" id="theme-card-candy">
+              <div class="theme-preview candy-preview">
+                <span class="preview-dot p-pink"></span>
+                <span class="preview-dot p-yellow"></span>
+                <span class="preview-dot p-cyan"></span>
+              </div>
+              <div class="theme-info">
+                <strong class="theme-name">🍬 Candy Jelly</strong>
+                <span class="theme-tag">Ceria & Mengkilap</span>
+              </div>
+            </button>
+
+            <button class="theme-card" data-theme="neon" id="theme-card-neon">
+              <div class="theme-preview neon-preview">
+                <span class="preview-dot p-neon-blue"></span>
+                <span class="preview-dot p-neon-pink"></span>
+                <span class="preview-dot p-neon-green"></span>
+              </div>
+              <div class="theme-info">
+                <strong class="theme-name">⚡ Cyber Neon</strong>
+                <span class="theme-tag">Glow & Synthwave</span>
+              </div>
+            </button>
+
+            <button class="theme-card" data-theme="pastel" id="theme-card-pastel">
+              <div class="theme-preview pastel-preview">
+                <span class="preview-dot p-pastel-peach"></span>
+                <span class="preview-dot p-pastel-mint"></span>
+                <span class="preview-dot p-pastel-lavender"></span>
+              </div>
+              <div class="theme-info">
+                <strong class="theme-name">🍃 Kawaii Pastel</strong>
+                <span class="theme-tag">Lembut & Cozy</span>
+              </div>
+            </button>
+
+            <button class="theme-card" data-theme="retro" id="theme-card-retro">
+              <div class="theme-preview retro-preview">
+                <span class="preview-dot p-retro-dark"></span>
+                <span class="preview-dot p-retro-mid"></span>
+                <span class="preview-dot p-retro-light"></span>
+              </div>
+              <div class="theme-info">
+                <strong class="theme-name">🕹️ Retro 8-Bit</strong>
+                <span class="theme-tag">GameBoy Arcade</span>
+              </div>
+            </button>
+          </div>
+
+          <div class="modal-actions">
+            <button id="close-theme-btn" class="play-big-btn">
+              Simpan & Tutup ✨
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UI Overlay: Global Leaderboard Modal -->
       <div id="leaderboard-overlay" class="overlay hidden">
         <div class="overlay-content candy-modal bounce-in leaderboard-modal-box">
           <div class="mascot-face">🏆</div>
           <div class="modal-badge">GLOBAL HALL OF FAME</div>
           <h2 class="overlay-title">Star Champions</h2>
           <p class="overlay-desc">Rekor skor tertinggi pemain RBlock di seluruh dunia!</p>
+
+          <!-- Leaderboard Mode Filter Tabs -->
+          <div class="leaderboard-tabs-row">
+            <button class="lb-tab-btn active" data-lb-mode="classic" id="lb-tab-classic">
+              🏆 Rekor Klasik
+            </button>
+            <button class="lb-tab-btn" data-lb-mode="daily" id="lb-tab-daily">
+              📅 Juara Harian
+            </button>
+          </div>
+
+          <!-- Connection & Status Pill -->
+          <div class="lb-status-bar">
+            <span id="lb-status-pill" class="status-pill online">🟢 Cloudflare KV Online</span>
+            <span id="lb-date-pill" class="status-pill info">Global All-Time</span>
+          </div>
 
           <div class="leaderboard-table-container">
             <div id="leaderboard-loading" class="leaderboard-loading hidden">
