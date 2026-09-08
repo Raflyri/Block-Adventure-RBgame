@@ -63,3 +63,12 @@ Agar binding baru aktif pada Functions:
    - **🟡 Rekor Lokal**: Menandakan game sedang berjalan offline atau binding KV belum terhubung.
 4. Mainkan game, lalu setelah Game Over atau menang, masukkan nama Anda dan klik **Simpan 🏅**.
 5. Skor Anda akan langsung tercatat dan muncul di peringkat dunia!
+
+---
+
+## ❓ Mengapa di Halaman KV "Connected Bindings" Masih Kosong?
+Jika Anda membuka menu **Storage & Databases > KV > rblock-leaderboard-kv > Settings**, bagian *"Connected bindings"* mungkin tidak menampilkan nama project Pages Anda. **Ini adalah hal yang normal di dashboard Cloudflare**:
+1. Tombol biru **"Connect"** dan daftar *"Connected bindings"* di halaman KV tersebut dirancang khusus untuk **Cloudflare Workers** (bukan Pages).
+2. Proyek **Cloudflare Pages** mengelola binding secara mandiri dari sisi Pages (**Workers & Pages > Project Anda > Settings > Functions > KV namespace bindings**).
+3. Untuk mempermudah, repository ini sekarang sudah menyertakan file **`wrangler.toml`** resmi yang otomatis menghubungkan namespace ID Anda (`34ef57b3352d4c33be32011129153f20`) langsung saat proses deployment.
+
