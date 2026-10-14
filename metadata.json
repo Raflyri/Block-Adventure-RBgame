@@ -1,0 +1,5 @@
+{
+  "name": "RBlock Adventure",
+  "description": "A joyful, colorful, and fully responsive block arcade adventure with Candy Bombs, touch swipe gestures, themes, daily challenges, and celebratory particles!",
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

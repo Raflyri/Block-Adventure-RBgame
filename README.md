@@ -1,208 +1,59 @@
 # RBlock Adventure 🎮
 
-[![Cloudflare Pages](https://img.shields.io/badge/Deployment-Cloudflare%20Pages-f38020?style=for-the-badge&logo=cloudflare)](https://pages.cloudflare.com/)
+[![React](https://img.shields.io/badge/React-19.0-61dafb?style=for-the-badge&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Bundler-Vite-646cff?style=for-the-badge&logo=vite)](https://vitejs.dev/)
 [![HTML5 Canvas](https://img.shields.io/badge/Render-HTML5%20Canvas-e34f26?style=for-the-badge&logo=html5)](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
-[![Vanilla JavaScript](https://img.shields.io/badge/Language-Vanilla%20JS%20(ES6+)-f7df1e?style=for-the-badge&logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![CSS3](https://img.shields.io/badge/Styles-CSS3%20Responsive-1572b6?style=for-the-badge&logo=css3)](https://developer.mozilla.org/en-US/docs/Web/CSS)
-[![License: Proprietary](https://img.shields.io/badge/Copyright-RBeverything-6b21a8?style=for-the-badge)](https://rbeverything.com)
+[![Express](https://img.shields.io/badge/Backend-Express%20API-000000?style=for-the-badge&logo=express)](https://expressjs.com/)
 
-**RBlock Adventure** adalah game puzzle susun balok arcade modern, ceria (*child-friendly*), dan berkinerja tinggi yang dibangun murni menggunakan **HTML5 Canvas, Vanilla JavaScript (ES6+), dan CSS3** tanpa dependensi eksternal. Game ini dioptimalkan khusus untuk *zero-config deployment* di **Cloudflare Pages** serta siap dihubungkan ke **Cloudflare Workers + KV**.
+**RBlock Adventure** is a joyful, colorful, and fully responsive block arcade adventure built with **React, TypeScript, Vite, HTML5 Canvas, and Express**. Featuring dynamic Candy Bombs, touch swipe gestures, themes, daily challenges, and celebratory particles!
 
 ---
 
-## ✨ Fitur Utama Terbaru (v2.0.0)
+## ✨ Core Features
 
-- 📲 **PWA (Progressive Web App) & 100% Offline Mode**:
-  - Dapat diinstal langsung ke perangkat Android, iOS, Windows, atau macOS layaknya aplikasi *native* via tombol **📲 Install App**.
-  - Didukung `sw.js` (Service Worker) dan `manifest.webmanifest` untuk akses super cepat dan permainan lancar tanpa kuota internet (*offline ready*).
+- 🎮 **Three Game Modes**:
+  - **Classic Arcade**: Infinite endurance arcade mode with level progression, combo streaks, and 1×1 Candy Bomb drops.
+  - **Daily Challenge**: Worldwide daily puzzle seeded with today's date (`YYYY-MM-DD`). Every player solves the exact same layout. Includes daily streak tracking.
+  - **Puzzle Mode (10 Stages)**: 10 handcrafted tactical stages with pre-set obstacle grids and limited piece queues.
 
-- 🎨 **Sistem 4 Pilihan Tema & Skin Balok**:
-  - 🍬 **Candy Jelly (Default)**: Balok jelly mengkilap warna-warni ceria dengan bayangan lembut.
-  - ⚡ **Cyber Neon**: Pendaran neon glow futuristik dengan kontras tinggi gaya synthwave.
-  - 🍃 **Kawaii Pastel**: Warna-warna pastel menenangkan (*soothing & cozy*).
-  - 🕹️ **Retro 8-Bit**: Palet hijau monokrom khas GameBoy 90-an dengan shading bevel piksel arcade.
+- 🎨 **4 Themes & Block Skins**:
+  - 🍬 **Candy Jelly**: Glossy candy blocks with shine spots and bright jelly palette.
+  - ⚡ **Cyber Neon**: Synthwave glowing neon outlines and high-contrast dark theme.
+  - 🍃 **Kawaii Pastel**: Gentle, soothing pastel tones with rounded pill highlights.
+  - 🕹️ **Retro 8-Bit**: Authentic GameBoy monochrome arcade styling with pixel bevels.
 
-- 🎮 **Tiga Mode Permainan Menantang**:
-  - **🎮 Klasik Arcade**: Mode ketangkasan bertahan hidup tak terbatas dengan peningkatan level dan balok *Candy Bomb*.
-  - **📅 Daily Challenge (Tantangan Harian)**: Teka-teki harian berbasis *PRNG seed* tanggal dunia (`YYYY-MM-DD`). Seluruh pemain di dunia mendapatkan tantangan dan urutan balok yang sama persis! Lengkap dengan pelacak *Daily Streak*.
-  - **🧩 Puzzle Stages (10 Level Teka-Teki)**: 10 stage tantangan unik bertahap dengan antrian balok terbatas untuk melatih strategi.
+- 💣 **Tactical 1×1 Candy Bomb**:
+  - 1×1 bomb with a pulsing fuse timer that scales with level speed.
+  - Clear a 3×3 grid with an explosion, screen shake, and debris collapse.
+  - Awards blast bonus points and clears floating blocks.
 
-- 🏆 **Multi-Mode Global Online Leaderboard (Cloudflare Pages Functions + Cloudflare D1 SQL)**:
-  - Rekor skor tersimpan persisten di database SQL edge serverless **Cloudflare D1 (`DB`)**.
-  - Tab terpisah untuk **🏆 Rekor Klasik** dan **📅 Juara Harian (Daily)**.
-  - Indikator status koneksi real-time: `🟢 Cloudflare D1 Online` atau `🟡 Mode Lokal`.
+- 🏆 **Global & Local Leaderboard**:
+  - Global Hall of Fame with tabs for Classic and Daily records.
+  - API backend route `/api/leaderboard` with local storage fallback.
 
-- 👆 **Kontrol Sentuh Langsung di Layar (Direct Touch & Swipe Gestures)**:
-  - **Geser Kiri/Kanan**: Seret atau geser jari langsung di atas arena bermain untuk menggeser balok secara presisi.
-  - **Seret ke Bawah**: Tarik jari ke bawah untuk melakukan *soft drop*.
-  - **Flick / Sentakan Cepat ke Bawah**: Sentak jari dengan cepat ke bawah untuk menjatuhkan balok seketika (*Super Drop*).
-  - **Ketukan Ringan (*Tap*)**: Ketuk arena layar secara singkat untuk memutar (*rotate*) balok 90°.
-  - **Dukungan Hibrida**: Tetap dilengkapi dengan tombol sentuh D-pad & aksi di bawah layar untuk kenyamanan bermain dengan dua jempol.
+- 👆 **Ergonomic Controls**:
+  - Direct canvas touch swipe: drag to move, drag down for soft drop, quick flick down for super drop, quick tap to spin.
+  - On-screen touch D-pad & action buttons (Pocket, Spin, Super Drop).
+  - Full keyboard shortcuts & gamepad API support.
 
-- 💣 **Candy Bomb 1×1 Spesial & Durasi Dinamis**:
-  - Balok Bom ringkas berukuran **1×1** dengan sumbu menyala (*pulsing fuse*).
-  - Durasi penghitung waktu mundur (*fuse timer*) yang dinamis sesuai level (8.0 detik pada Level 1 hingga 2.5 detik pada level tinggi), menciptakan tantangan yang semakin mendebarkan.
-  - Meledak dengan radius 3×3, melumat balok di sekitarnya dan memberikan bonus poin ledakan (*+250 Blast Bonus!*).
-  - Dilengkapi efek **getar layar (*Screen Shake*)**, lingkaran gelombang kejut (*Shockwave Ring*), dan percikan api kartun.
-
-- 💥 **Animasi Pecahan Balok & Shattered Debris**:
-  - Saat baris dibersihkan (*line clear*), balok hancur berkeping-keping menjadi pecahan partikel warna-warni (*shattered debris*) yang berhamburan dengan simulasi gravitasi dan rotasi.
-
-- 🔊 **Efek Suara Arcade Unik & Punchy (Pure Web Audio API)**:
-  - Suara dentuman ledakan bom menggelegar (*deep sub-bass noise boom*).
-  - Efek suara gemerincing balok hancur (*crystalline shatter clink*).
-  - Nada arpeggio kombo bertingkat yang semakin tinggi (*1x, 2x, 3x COMBO!*).
-  - Melodi ceria marimba/xylophone chimes untuk gerakan, rotasi, dan pembersihan baris.
-
-- 🍬 **Desain Ceria & Child-Friendly**:
-  - Balok dirender menyerupai **permen jelly kenyal & mengkilap** (*glossy rounded candy blocks*).
-  - Latar belakang gradasi ungu manis dengan animasi gelembung melayang dan bintang berkelip.
-  - Tipografi bulat bersahabat menggunakan Google Font **`Fredoka`**.
-
-- 📱 **100% Responsif & Fit-to-Screen**:
-  - **No-Scroll Game Layout**: Menggunakan dynamic viewport height (`100dvh`), sehingga pas dalam satu layar tanpa scroll vertikal yang mengganggu.
-  - **Dukungan Berbagai Perangkat**:
-    - **Desktop ($\ge 850\text{px}$)**: Tata letak 3 kolom simetris dengan panel kontrol terorganisir.
-    - **Tablet ($600\text{px} - 849\text{px}$)**: Penskalaan proporsional otomatis menggunakan CSS `clamp()`.
-    - **Mobile Smartphone ($< 600\text{px}$)**: Tata letak ramah genggaman dengan gesture sentuh langsung dan tombol jempol.
-  - **HiDPI Retina Ready**: Ketajaman grafis canvas otomatis menyesuaikan `devicePixelRatio` layar sehingga grafis selalu tajam dan tidak buram.
-
-- 🕹️ **Fisika & Aturan Game**:
-  - Matrix standar 10 kolom × 20 baris.
-  - 7 bentuk balok khas (`I`, `J`, `L`, `O`, `S`, `T`, `Z`) ditambah balok spesial **Candy Bomb**.
-  - Rotasi 90 derajat dengan deteksi benturan dinding (*wall-kick*) agar balok tidak macet di tepi arena.
-  - Proyeksi bayangan balok (*ghost piece*) untuk melihat titik jatuh sebelum mendarat.
-  - Fitur simpan balok cadangan (*Pocket / Hold*).
+- 🔊 **Punchy Web Audio Synthesizer**:
+  - Procedural sound effects using Web Audio API (moves, rotations, soft/hard drops, line clear chords, bomb explosion with sub-bass noise, urgent fuse ticks, victory fanfares).
 
 ---
 
-## 🎮 Cara Bermain & Kontrol
+## 🛠️ Tech Stack & Architecture
 
-### Kontrol Sentuh & Gestur Layar (Smartphone / Tablet)
+- **Frontend**: React 19, TypeScript, HTML5 Canvas, Vite
+- **Backend API**: Node.js & Express (`/api/leaderboard`)
+- **PWA**: Web App Manifest and Service Worker support
 
-| Gestur / Tombol | Aksi |
-| :--- | :--- |
-| **Geser Layar Kiri / Kanan** | Memindahkan balok ke samping |
-| **Tarik Layar ke Bawah** | *Soft Drop* (Jatuh perlahan) |
-| **Flick Cepat ke Bawah** | *Super Drop!* (Jatuh instan ke dasar) |
-| **Ketuk Arena Layar (Tap)** | Putar / Rotasi balok 90° |
-| **Tombol D-Pad (◀ / ▼ / ▶)** | Navigasi balok alternatif |
-| **Tombol `🔄 SPIN`** | Memutar balok |
-| **Tombol `🎒 POCKET`** | Menyimpan / Menukar balok cadangan (*Hold*) |
-| **Tombol `⚡ DROP!`** | Menjatuhkan balok langsung ke dasar |
+## 🚀 Development & Build
 
-### Kontrol Keyboard (Desktop / Laptop)
+```bash
+# Start dev server with Vite middleware on port 3000
+npm run dev
 
-| Tombol | Aksi |
-| :--- | :--- |
-| **`←`** / **`A`** | Geser Balok ke Kiri |
-| **`→`** / **`D`** | Geser Balok ke Kanan |
-| **`↑`** / **`W`** | Putar / Rotasi Balok 90° |
-| **`↓`** / **`S`** | *Soft Drop* (Jatuh pelan / bonus skor) |
-| **`Spacebar`** | *Super Drop!* (Jatuh instan ke dasar) |
-| **`C`** / **`Shift`** | Masukkan / Tukar Balok ke *Pocket (Hold)* |
-| **`P`** / **`Escape`** | *Pause* / *Resume* Permainan |
-| **`M`** | Nyalakan / Matikan Suara (*Mute*) |
-
----
-
-## 🏆 Sistem Skor, Kombo & Level
-
-- **Skor Pembersihan Baris**:
-  - 1 Garis (*Single*): **100 Poin**
-  - 2 Garis (*Double*): **300 Poin**
-  - 3 Garis (*Triple*): **500 Poin**
-  - 4 Garis (*Mega RBlock!*): **800 Poin** (disertai animasi perayaan bintang)
-- **Bonus Kombo Beruntun**:
-  - Mendapat tambahan bonus poin berlipat saat membersihkan baris secara berturut-turut (*2x COMBO! 🔥*, *3x COMBO! ⚡*).
-- **Bonus Ledakan Candy Bomb**:
-  - **+250 Poin dasar** + **40 Poin** untuk setiap petak balok yang hancur dalam radius ledakan 3×3.
-- **Bonus Drop**:
-  - *Soft Drop*: +1 poin per petak jatuh.
-  - *Hard Drop*: +2 poin per petak jatuh.
-- **Sistem Level Dinamis**:
-  - Kecepatan jatuh balok otomatis meningkat setiap **1.000 poin**.
-  - Penghitung waktu mundur bom semakin menantang seiring bertambahnya level.
-
----
-
-## 🚀 Menjalankan Secara Lokal
-
-Karena game ini dibangun tanpa dependensi maupun proses *build* (*pure static files*), Anda dapat menjalankannya dengan mudah:
-
-### Opsi 1: Menggunakan Python
-```powershell
-python -m http.server 3000
+# Build production assets
+npm run build
 ```
-Buka browser di: **`http://localhost:3000`**
-
-### Opsi 2: Menggunakan Node.js / npx
-```powershell
-npx serve .
-# atau
-npx http-server -p 3000
-```
-
-### Opsi 3: Menggunakan Cloudflare Wrangler
-Untuk menguji simulasi lingkungan lokal Cloudflare Pages:
-```powershell
-npx wrangler pages dev .
-```
-
----
-
-## 🌐 Panduan Deployment ke Cloudflare Pages
-
-Game ini siap di-deploy secara instan (*Zero-Config*):
-
-1. **Melalui Git Repository (GitHub / GitLab)**:
-   - Hubungkan repositori ini di **Cloudflare Dashboard > Workers & Pages > Create application > Pages**.
-   - Pilih repositori ini.
-   - Kosongkan bagian **Build command**.
-   - Isi **Build output directory** dengan `/` (atau biarkan *root*).
-   - Klik **Save and Deploy**.
-
-2. **Menghubungkan Cloudflare D1 Database (Untuk Global Leaderboard)**:
-   - Di Cloudflare Dashboard, buka **Storage & Databases > D1 SQL Database**.
-   - Buat database baru: `rblock-leaderboard`.
-   - Buka proyek Pages Anda > **Settings > Bindings** (atau **Functions > D1 database bindings**).
-   - Tambahkan binding:
-     - **Variable name**: `DB` (atau `LEADERBOARD_DB`)
-     - **D1 database**: Pilih database `rblock-leaderboard` yang sudah dibuat.
-   - Panduan visual lengkap langkah demi langkah dapat dibaca di: **[CLOUDFLARE_D1_GUIDE.md](CLOUDFLARE_D1_GUIDE.md)**.
-   - Klik **Save**. Rekor pemain di seluruh dunia kini tersimpan permanen di database SQL!
-
-3. **Melalui Wrangler CLI**:
-   ```bash
-   npx wrangler pages deploy . --project-name=rblock-adventure
-   ```
-
----
-
-## 📂 Struktur Berkas
-
-```
-rblock-adventure/
-├── functions/
-│   └── api/
-│       └── leaderboard.js              # Serverless Cloudflare Pages Function (D1 SQL API)
-├── schema.sql                          # Skema tabel SQL untuk Cloudflare D1 Database
-├── icon.svg                            # Maskable Vector Icon PWA 512x512
-├── manifest.webmanifest                # PWA App Manifest & Metadata
-├── sw.js                               # Service Worker Cerdas (Cache-First & Offline)
-├── index.html                          # UI Overlays, Fixed Modals, & Canvas
-├── style.css                           # Design System 4 Tema, Responsive & Controls
-├── script.js                           # Engine RBlock, Multi-Mode, Gamepad & Touch
-├── CLOUDFLARE_D1_GUIDE.md              # Panduan Konfigurasi Cloudflare D1 Database
-├── RELEASE_NOTES.md                    # Catatan riwayat pembaruan (Changelog) lengkap
-├── .gitignore                          # Daftar berkas yang diabaikan oleh Git
-└── README.md                           # Dokumentasi resmi proyek
-```
-
----
-
-## 📄 Hak Cipta & Lisensi
-
-Copyright © 2026 **RBeverything**. All rights reserved.
-
-Proyek ini dibuat dan dikembangkan di bawah naungan **RBeverything**. Penggunaan, pendistribusian, dan modifikasi kode tunduk pada ketentuan lisensi pemilik proyek.

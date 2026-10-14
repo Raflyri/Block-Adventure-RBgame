@@ -54,7 +54,7 @@ html, body {
   width: 100%;
   height: 100%;
   height: 100dvh;
-  overflow: hidden; /* Fit-to-screen: Prevents unwanted window scrolling */
+  overflow: hidden;
 }
 
 body {
@@ -66,6 +66,17 @@ body {
   align-items: center;
   position: relative;
   user-select: none;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Floating Whimsical Background Bubbles & Twinkling Stars */
@@ -364,31 +375,7 @@ body {
   justify-content: center;
   align-items: center;
   transition: transform 0.05s ease-out;
-  touch-action: none; /* Allows direct swipe/drag gestures without page scroll */
-}
-
-/* ==========================================================================
-   SCREEN SHAKE ANIMATIONS
-   ========================================================================== */
-.screen-shake {
-  animation: screenShakeAnim 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
-}
-
-@keyframes screenShakeAnim {
-  10%, 90% { transform: translate3d(-4px, 3px, 0) rotate(-0.5deg); }
-  20%, 80% { transform: translate3d(5px, -4px, 0) rotate(0.8deg); }
-  30%, 50%, 70% { transform: translate3d(-6px, 5px, 0) rotate(-0.8deg); }
-  40%, 60% { transform: translate3d(6px, -5px, 0) rotate(0.5deg); }
-}
-
-.soft-shake {
-  animation: softShakeAnim 0.18s ease-out both !important;
-}
-
-@keyframes softShakeAnim {
-  0% { transform: translateY(0); }
-  40% { transform: translateY(5px); }
-  100% { transform: translateY(0); }
+  touch-action: none;
 }
 
 #rblock-canvas {
@@ -585,7 +572,7 @@ kbd {
   color: #ffd129;
 }
 
-/* UI Overlays (Start, Pause, GameOver, Theme, Leaderboard) */
+/* UI Overlays */
 .overlay {
   position: fixed;
   top: 0;
@@ -1018,11 +1005,7 @@ kbd {
   display: none !important;
 }
 
-/* ==========================================================================
-   RESPONSIVE MEDIA QUERIES
-   ========================================================================== */
-
-/* TABLET / SMALL LAPTOP (max-width: 900px and min-width: 601px) */
+/* RESPONSIVE MEDIA QUERIES */
 @media (max-width: 900px) and (min-width: 601px) {
   .panel {
     width: clamp(120px, 18vw, 150px);
@@ -1033,14 +1016,12 @@ kbd {
   }
 }
 
-/* TOUCH SCREENS & MOBILE / TABLET (max-width: 768px or touch pointer) */
 @media (max-width: 768px), (hover: none) and (pointer: coarse) {
   .touch-controls {
     display: flex;
   }
 }
 
-/* MOBILE PORTRAIT (max-width: 600px) */
 @media (max-width: 600px) {
   .app-container {
     padding: 0.35rem 0.5rem;
@@ -1099,7 +1080,6 @@ kbd {
   }
 }
 
-/* SHORT VIEWPORT (Height < 620px) */
 @media (max-height: 620px) {
   .app-container {
     padding: 0.25rem 0.5rem;
@@ -1128,7 +1108,6 @@ kbd {
   }
 }
 
-/* LARGE SCREENS */
 @media (min-width: 1200px) and (min-height: 800px) {
   .canvas-container {
     max-height: 600px;
@@ -1139,9 +1118,7 @@ kbd {
   }
 }
 
-/* ==========================================================================
-   GLOBAL LEADERBOARD MODAL & STYLES (FIXED FULLSCREEN VIEWPORT)
-   ========================================================================== */
+/* Leaderboard */
 #leaderboard-overlay {
   position: fixed;
   top: 0;
@@ -1160,12 +1137,6 @@ kbd {
   transition: opacity 0.3s ease;
 }
 
-#leaderboard-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
 #leaderboard-overlay .leaderboard-modal-box {
   width: 100%;
   max-width: clamp(320px, 90vw, 430px);
@@ -1181,25 +1152,6 @@ kbd {
   border-radius: 22px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 190, 11, 0.15);
   overflow: hidden;
-}
-
-#leaderboard-overlay .mascot-face {
-  font-size: clamp(1.8rem, 3.5vh, 2.2rem);
-  line-height: 1;
-}
-
-#leaderboard-overlay .overlay-title {
-  font-size: clamp(1.2rem, 2.8vh, 1.45rem);
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.15;
-}
-
-#leaderboard-overlay .overlay-desc {
-  font-size: clamp(0.72rem, 1.3vh, 0.8rem);
-  color: #dfd4f2;
-  line-height: 1.3;
-  margin-bottom: 0.15rem;
 }
 
 .leaderboard-table-container {
@@ -1348,11 +1300,8 @@ kbd {
   flex: 1;
 }
 
-/* ==========================================================================
-   THEME STYLES OVERRIDES
-   ========================================================================== */
-
-/* 1. Cyber Neon Theme */
+/* THEMES OVERRIDES */
+/* 1. Cyber Neon */
 html[data-theme="neon"] {
   --bg-gradient-start: #060515;
   --bg-gradient-mid: #0d0a29;
@@ -1388,7 +1337,7 @@ html[data-theme="neon"] .candy-card {
   box-shadow: 0 4px 16px rgba(0, 229, 255, 0.12), inset 0 0 12px rgba(0, 229, 255, 0.05);
 }
 
-/* 2. Kawaii Pastel Theme */
+/* 2. Kawaii Pastel */
 html[data-theme="pastel"] {
   --bg-gradient-start: #28243d;
   --bg-gradient-mid: #3d3659;
@@ -1416,7 +1365,7 @@ html[data-theme="pastel"] {
   --piece-z: #ff9ebb;
 }
 
-/* 3. Retro 8-Bit GameBoy Theme */
+/* 3. Retro 8-Bit GameBoy */
 html[data-theme="retro"] {
   --bg-gradient-start: #1c2718;
   --bg-gradient-mid: #2b3b24;
@@ -1449,9 +1398,6 @@ html[data-theme="retro"] .sky-bubbles {
   filter: grayscale(100%) sepia(100%) hue-rotate(50deg);
 }
 
-/* ==========================================================================
-   PWA INSTALL & THEME BUTTONS
-   ========================================================================== */
 .install-btn {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   color: #ffffff !important;
@@ -1475,9 +1421,7 @@ html[data-theme="retro"] .sky-bubbles {
   50% { transform: scale(1.05); }
 }
 
-/* ==========================================================================
-   GAME MODE TABS & START OVERLAY ENHANCEMENTS
-   ========================================================================== */
+/* Mode Tabs */
 .mode-tabs-container {
   display: flex;
   background: rgba(0, 0, 0, 0.25);
@@ -1594,15 +1538,12 @@ html[data-theme="retro"] .sky-bubbles {
   pointer-events: none;
 }
 
-/* Dynamic In-Game Objective Card */
 .objective-card {
   border-color: var(--candy-cyan) !important;
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.2) !important;
 }
 
-/* ==========================================================================
-   THEME SELECTOR MODAL
-   ========================================================================== */
+/* Theme Selector */
 .theme-modal-box {
   max-width: 440px !important;
 }
@@ -1682,9 +1623,7 @@ html[data-theme="retro"] .sky-bubbles {
   display: block;
 }
 
-/* ==========================================================================
-   LEADERBOARD MULTI-MODE TABS & STATUS PILLS
-   ========================================================================== */
+/* Leaderboard */
 .leaderboard-tabs-row {
   display: flex;
   background: rgba(0, 0, 0, 0.25);
@@ -1752,4 +1691,3 @@ html[data-theme="retro"] .sky-bubbles {
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #d1d5db;
 }
-
