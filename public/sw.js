@@ -1,16 +1,16 @@
 /**
  * ============================================================================
  * RBlock Adventure - Service Worker (sw.js)
- * Enables 100% Offline Gameplay and PWA caching
+ * Enables 100% Offline Gameplay and PWA caching for Vite Production Build
  * ============================================================================
  */
 
-const CACHE_NAME = 'rblock-adventure-v2.0.0';
+const CACHE_NAME = 'rblock-adventure-v2.1.0';
 const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './icon.svg'
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/icon.svg'
 ];
 
 // Install Event - Pre-cache core shell
@@ -37,16 +37,33 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event - Cache-First for static assets, Network-First with fallback for API
+// Fetch Event - Cache-First for static assets & Vite bundles, Network-First with fallback for API
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET' && !event.request.url.includes('/api/')) {
+    return;
+  }
+
   const requestUrl = new URL(event.request.url);
 
-  // If request is to Cloudflare Functions API (/api/leaderboard)
+  // If request is to Cloudflare Functions API (/api/leaderboard or /api/shoutcaster)
   if (requestUrl.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
         .catch(() => {
-          // Return a structured offline mock response if network is unavailable
+          if (requestUrl.pathname.startsWith('/api/shoutcaster')) {
+            return new Response(
+              JSON.stringify({
+                success: false,
+                source: 'offline_fallback',
+                comment: null
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+              }
+            );
+          }
+
           return new Response(
             JSON.stringify({
               success: true,
@@ -68,14 +85,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static local assets & Google fonts: Cache First, fallback to Network
+  // For static local assets, Vite /assets/* bundles & Google fonts: Cache First, fallback to Network
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).then((networkResponse) => {
-        // Cache external fonts or resources dynamically if valid
         if (
           networkResponse &&
           networkResponse.status === 200 &&
@@ -88,9 +104,8 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // If navigating to an HTML page while offline, fallback to cached index.html
         if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
+          return caches.match('/index.html');
         }
       });
     })

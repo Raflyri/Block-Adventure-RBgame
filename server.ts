@@ -131,6 +131,58 @@ app.post('/api/leaderboard', (req, res) => {
   }
 });
 
+// POST /api/shoutcaster (Local Dev Proxy to Gemini 2.5 Flash)
+app.post('/api/shoutcaster', async (req, res) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.json({ success: false, source: 'no_server_key', comment: null });
+    }
+
+    const prompt = (req.body?.prompt || '').toString().trim().slice(0, 600);
+    if (!prompt) {
+      return res.status(400).json({ success: false, error: 'Missing prompt' });
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [
+              {
+                text: 'Kamu adalah komentator game e-sports yang ceria, kocak, dan menyemangati. Berikan komentar 1 kalimat singkat dalam bahasa Indonesia berdasarkan status papan game saat ini.'
+              }
+            ]
+          },
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.9,
+            maxOutputTokens: 80
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      return res.json({ success: false, source: 'gemini_http_error', comment: null });
+    }
+
+    const data: any = await response.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+
+    return res.json({
+      success: Boolean(rawText),
+      source: 'gemini_api',
+      comment: rawText ? rawText.replace(/^["']|["']$/g, '') : null
+    });
+  } catch (err: any) {
+    return res.json({ success: false, error: err?.message, comment: null });
+  }
+});
+
 async function startServer() {
   const isProduction = process.env.NODE_ENV === 'production';
 

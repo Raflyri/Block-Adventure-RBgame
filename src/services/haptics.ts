@@ -1,7 +1,10 @@
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+
 /**
  * Haptic Vibration Service for RBlock Adventure
- * Uses the Web Vibration API (navigator.vibrate) to deliver tactile feedback
- * on mobile devices, PWAs, and Android native webviews (Capacitor).
+ * Uses Capacitor Native Haptics on Android/iOS and falls back to
+ * Web Vibration API (navigator.vibrate) on web & PWAs.
  */
 
 class HapticsService {
@@ -18,10 +21,19 @@ class HapticsService {
     }
   }
 
+  public isNative(): boolean {
+    try {
+      return Capacitor.isNativePlatform();
+    } catch {
+      return false;
+    }
+  }
+
   /**
-   * Check if the Vibration API is supported on the current device & browser
+   * Check if haptics are supported on the current device (Native Capacitor or Web Vibration API)
    */
   public isSupported(): boolean {
+    if (this.isNative()) return true;
     return (
       typeof window !== 'undefined' &&
       typeof navigator !== 'undefined' &&
@@ -30,16 +42,10 @@ class HapticsService {
     );
   }
 
-  /**
-   * Check if haptic feedback is currently enabled by the user
-   */
   public isEnabled(): boolean {
     return this.enabled && this.isSupported();
   }
 
-  /**
-   * Toggle or set haptic feedback enabled state
-   */
   public setEnabled(enabled: boolean) {
     this.enabled = enabled;
     try {
@@ -50,11 +56,8 @@ class HapticsService {
     }
   }
 
-  /**
-   * Cancel any active vibration
-   */
   public cancel(): boolean {
-    if (this.isSupported()) {
+    if (!this.isNative() && this.isSupported()) {
       try {
         return navigator.vibrate(0);
       } catch {
@@ -64,127 +67,134 @@ class HapticsService {
     return false;
   }
 
-  /**
-   * Core execution of vibration pattern with safety checks and error suppression
-   */
   public vibrate(pattern: number | number[]): boolean {
     if (!this.enabled || !this.isSupported()) {
       return false;
     }
+    if (this.isNative()) {
+      const duration = Array.isArray(pattern)
+        ? pattern.reduce((a, b) => a + b, 0)
+        : pattern;
+      Haptics.vibrate({ duration: Math.min(duration, 400) }).catch(() => {});
+      return true;
+    }
     try {
       return navigator.vibrate(pattern);
     } catch {
-      // Suppress potential SecurityError or UserActivation requirement errors
       return false;
     }
   }
 
-  /**
-   * Haptic feedback for UI menu interactions (buttons, tabs, modal close/open)
-   */
   public menuTap() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      return;
+    }
     this.vibrate(18);
   }
 
-  /**
-   * Light tactile feedback for piece shift (left / right move)
-   */
   public move() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      return;
+    }
     this.vibrate(12);
   }
 
-  /**
-   * Subtle snappy tap for piece rotation
-   */
   public rotate() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
+      return;
+    }
     this.vibrate([14, 10, 14]);
   }
 
-  /**
-   * Micro vibration on soft drop tick
-   */
   public softDrop() {
     this.vibrate(10);
   }
 
-  /**
-   * Firm impact vibration when a piece is hard-dropped onto the stack
-   */
   public hardDrop() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+      return;
+    }
     this.vibrate([45, 25, 25]);
   }
 
-  /**
-   * Subtle vibration when a piece locks into the grid or sand settles
-   */
   public pieceLock() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      return;
+    }
     this.vibrate(22);
   }
 
-  /**
-   * Tactile pulse when piece is put into pocket (hold)
-   */
   public hold() {
     this.vibrate([16, 20, 18]);
   }
 
-  /**
-   * Rich haptic feedback scaled to the number of cleared lines (Classic / Daily / Puzzle)
-   * Tetris (4 lines) gives an epic multi-pulse celebration!
-   */
   public lineClear(linesCount: number = 1) {
+    if (!this.enabled) return;
+    if (this.isNative() && linesCount >= 4) {
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+    }
     if (linesCount <= 1) {
-      // Single line: crisp double tap
       this.vibrate([35, 40, 40]);
     } else if (linesCount === 2) {
-      // Double line: progressive pulses
       this.vibrate([40, 35, 50, 35, 60]);
     } else if (linesCount === 3) {
-      // Triple line: energetic crescendo
       this.vibrate([45, 30, 60, 30, 80]);
     } else {
-      // Tetris (4 lines): Heavy celebratory fanfare pattern
       this.vibrate([55, 35, 75, 35, 95, 40, 140]);
     }
   }
 
-  /**
-   * Cascading vibration for Sand Physics bridge clears (connecting left to right)
-   */
   public sandBridgeClear(clustersCount: number = 1) {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+    }
     if (clustersCount <= 1) {
       this.vibrate([35, 30, 50]);
     } else {
-      // Multi-bridge cascade
       this.vibrate([45, 30, 65, 30, 90, 40, 110]);
     }
   }
 
-  /**
-   * Intense rumble vibration on candy bomb detonation
-   */
   public bombExplosion() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+    }
     this.vibrate([60, 30, 90, 40, 130]);
   }
 
-  /**
-   * Descending vibration on Game Over
-   */
   public gameOver() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.notification({ type: NotificationType.Error }).catch(() => {});
+    }
     this.vibrate([80, 50, 100, 50, 150]);
   }
 
-  /**
-   * Celebratory triumphant vibration when player beats stage or daily challenge
-   */
   public victory() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+    }
     this.vibrate([50, 40, 60, 40, 80, 40, 120]);
   }
 
-  /**
-   * Test preview vibration used in the Settings modal to demonstrate feedback
-   */
   public test() {
+    if (!this.enabled) return;
+    if (this.isNative()) {
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+    }
     this.vibrate([30, 40, 45, 40, 60]);
   }
 }

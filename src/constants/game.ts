@@ -339,3 +339,12 @@ export const DEFAULT_DAILY_LEADERBOARD: LeaderboardEntry[] = [
   { name: "SpeedyBlock", score: 3950, date: new Date().toISOString() },
   { name: "PuzzleAce", score: 2900, date: new Date().toISOString() }
 ];
+
+
+export const DEFAULT_SAND_LEADERBOARD: LeaderboardEntry[] = [
+  { name: "SandWiz", score: 8900, date: "2026-09-02T12:00:00.000Z" },
+  { name: "DuneRacer", score: 6750, date: "2026-09-03T15:20:00.000Z" },
+  { name: "GrainStorm", score: 5400, date: "2026-09-04T09:10:00.000Z" },
+  { name: "DesertFox", score: 4200, date: "2026-09-04T16:30:00.000Z" },
+  { name: "OasisKing", score: 3100, date: "2026-09-05T10:15:00.000Z" }
+];

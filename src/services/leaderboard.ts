@@ -1,5 +1,9 @@
 import { GameMode, LeaderboardEntry } from '../types/game';
-import { DEFAULT_CLASSIC_LEADERBOARD, DEFAULT_DAILY_LEADERBOARD } from '../constants/game';
+import {
+  DEFAULT_CLASSIC_LEADERBOARD,
+  DEFAULT_DAILY_LEADERBOARD,
+  DEFAULT_SAND_LEADERBOARD
+} from '../constants/game';
 import { getTodayDateString } from './prng';
 
 export const BEST_SCORE_KEYS: Record<GameMode, string> = {
@@ -8,7 +12,6 @@ export const BEST_SCORE_KEYS: Record<GameMode, string> = {
 };
 
 export function getBestScore(mode: GameMode): number {
-  // Fallback ke key lama 'rblock_best_score' untuk mode classic agar skor lama tidak hilang
   if (mode === 'classic') {
     const saved = localStorage.getItem(BEST_SCORE_KEYS.classic) ?? localStorage.getItem('rblock_best_score');
     return saved ? parseInt(saved, 10) || 0 : 0;
@@ -40,7 +43,9 @@ export class LeaderboardService {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return mode === 'daily' ? [...DEFAULT_DAILY_LEADERBOARD] : [...DEFAULT_CLASSIC_LEADERBOARD];
+    if (mode === 'daily') return [...DEFAULT_DAILY_LEADERBOARD];
+    if (mode === 'sand') return [...DEFAULT_SAND_LEADERBOARD];
+    return [...DEFAULT_CLASSIC_LEADERBOARD];
   }
 
   static saveLocalScore(name: string, score: number, mode: 'classic' | 'daily' | 'sand' = 'classic'): LeaderboardEntry[] {
@@ -50,7 +55,7 @@ export class LeaderboardService {
       ? 'rblock_leaderboard_sand'
       : 'rblock_leaderboard_local';
     const list = this.getLocalScores(mode);
-    list.push({ name, score, date: new Date().toISOString() });
+    list.push({ name, score, mode, date: new Date().toISOString() });
     list.sort((a, b) => b.score - a.score);
     const trimmed = list.slice(0, 50);
     try {
@@ -71,7 +76,7 @@ export class LeaderboardService {
           this.isOnline = true;
           return {
             scores: data.leaderboard,
-            source: data.source || 'backend_api'
+            source: data.source || 'cloudflare_d1'
           };
         }
       }

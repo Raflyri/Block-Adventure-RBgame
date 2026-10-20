@@ -1,17 +1,17 @@
 {
   "name": "RBlock Adventure",
   "short_name": "RBlock",
-  "description": "Fun, colorful, responsive block arcade adventure with Candy Bombs, daily challenges, and themes!",
-  "start_url": "./index.html",
-  "scope": "./",
+  "description": "Fun, colorful, responsive block arcade & sand physics adventure with Candy Bombs, AI Shoutcaster, daily challenges, and themes!",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait",
   "background_color": "#180d30",
   "theme_color": "#1b1035",
   "categories": ["games", "arcade", "puzzle"],
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "/icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

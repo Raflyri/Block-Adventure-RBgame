@@ -42,6 +42,11 @@ import {
   getClusterClearThreshold
 } from './services/sandEngine';
 import { getTodayDateString, getDateSeed, createMulberry32 } from './services/prng';
+import {
+  aiShoutcaster,
+  getClassicBoardStackRatio,
+  getSandGridStackRatio
+} from './services/aiShoutcaster';
 
 import { Header } from './components/Header';
 import { StatsPanel } from './components/StatsPanel';
@@ -55,6 +60,7 @@ import { ThemeModal } from './components/ThemeModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal, SENSITIVITY_LABELS } from './components/SettingsModal';
 import { SkyBubbles } from './components/SkyBubbles';
+import { ShoutcasterAvatar } from './components/ShoutcasterAvatar';
 
 export const App: React.FC = () => {
   // Theme State
@@ -681,6 +687,13 @@ export const App: React.FC = () => {
     setCustomTitle(title);
     setCustomBadge(badge);
     setIsGameOverOpen(true);
+
+    aiShoutcaster.notifyEvent({
+      type: 'victory',
+      mode: modeRef.current,
+      score: scoreRef.current,
+      level: levelRef.current
+    });
   }, []);
 
   const handleGameOver = useCallback((title?: string, badge?: string) => {
@@ -692,6 +705,13 @@ export const App: React.FC = () => {
     setCustomTitle(title || null);
     setCustomBadge(badge || null);
     setIsGameOverOpen(true);
+
+    aiShoutcaster.notifyEvent({
+      type: 'game_over',
+      mode: modeRef.current,
+      score: scoreRef.current,
+      level: levelRef.current
+    });
   }, []);
 
   // Line Clear
@@ -760,6 +780,12 @@ export const App: React.FC = () => {
       }
 
       triggerBombBanner(blastBonus, destroyedCount);
+      aiShoutcaster.notifyEvent({
+        type: 'bomb_blast',
+        mode: modeRef.current,
+        score: newScore,
+        level: levelRef.current
+      });
 
       const cleared = clearLines();
       if (cleared > 0) {
@@ -881,6 +907,12 @@ export const App: React.FC = () => {
           saveBestScore('sand', total);
           setBestScoreSand((prev) => Math.max(prev, total));
           setHighScore((prev) => Math.max(prev, total));
+          aiShoutcaster.notifyEvent({
+            type: 'bomb_blast',
+            mode: 'sand',
+            score: total,
+            level: levelRef.current
+          });
         }
       } else {
         const toppedOut = imprintPieceToSand(
@@ -897,6 +929,17 @@ export const App: React.FC = () => {
         if (toppedOut || isSandToppedOut(sandGridRef.current)) {
           handleGameOver('Tumpukan Pasir Mencapai Puncak! ⏳', 'GAME OVER');
           return;
+        }
+
+        const sandRatio = getSandGridStackRatio(sandGridRef.current);
+        if (sandRatio >= 0.72) {
+          aiShoutcaster.notifyEvent({
+            type: 'critical_stack',
+            mode: 'sand',
+            score: scoreRef.current,
+            level: levelRef.current,
+            stackHeightRatio: sandRatio
+          });
         }
       }
 
@@ -975,10 +1018,31 @@ export const App: React.FC = () => {
         particles.spawnMegaRBlockBurst(canvasRef.current.width, canvasRef.current.height);
         triggerScreenShake(true);
       }
+      if (combo >= 2 || cleared >= 2) {
+        aiShoutcaster.notifyEvent({
+          type: 'combo',
+          mode: modeRef.current,
+          score: total,
+          level: newLvl,
+          linesCleared: cleared,
+          comboStreak: combo
+        });
+      }
     } else {
       haptics.pieceLock();
       comboStreakRef.current = 0;
       setComboStreak(0);
+
+      const classicRatio = getClassicBoardStackRatio(boardRef.current);
+      if (classicRatio >= 0.72) {
+        aiShoutcaster.notifyEvent({
+          type: 'critical_stack',
+          mode: modeRef.current,
+          score: scoreRef.current,
+          level: levelRef.current,
+          stackHeightRatio: classicRatio
+        });
+      }
     }
 
     // Win Conditions
@@ -1228,6 +1292,13 @@ export const App: React.FC = () => {
       setIsThemeOpen(false);
 
       dropCounterRef.current = 0;
+
+      aiShoutcaster.notifyEvent({
+        type: 'game_start',
+        mode: modeToStart,
+        score: 0,
+        level: 1
+      });
     },
     [mode, selectedPuzzleStage, createPieceFromType, getNextPieceType, initBombFuse]
   );
@@ -1625,6 +1696,16 @@ export const App: React.FC = () => {
               } else {
                 triggerBanner(bridgesCount, 1);
               }
+
+              aiShoutcaster.notifyEvent({
+                type: 'sand_clear',
+                mode: 'sand',
+                score: nextScore,
+                level: levelRef.current,
+                sandBridges: bridgesCount,
+                sandGrains: totalGrainsCleared,
+                stoneBroken: totalStoneBroken
+              });
             }
           }
         }
@@ -1745,12 +1826,41 @@ export const App: React.FC = () => {
     return await LeaderboardService.submitScore(name, score, modeToSubmit);
   };
 
+  // Android Gesture Back / Hardware Back Button Interception
+  useEffect(() => {
+    try {
+      window.history.pushState({ rblockGuard: true }, '');
+    } catch {}
+
+    const handlePopState = () => {
+      try {
+        window.history.pushState({ rblockGuard: true }, '');
+      } catch {}
+
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+      } else if (isThemeOpen) {
+        setIsThemeOpen(false);
+      } else if (isLeaderboardOpen) {
+        setIsLeaderboardOpen(false);
+      } else if (gameStatusRef.current === 'PLAYING') {
+        pauseGame();
+      } else if (gameStatusRef.current === 'PAUSED') {
+        resumeGame();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isSettingsOpen, isThemeOpen, isLeaderboardOpen, pauseGame, resumeGame]);
+
   const puzzleRemainingQueueCount =
     puzzleQueue.length + (currentPiece ? 1 : 0) + (nextPiece ? 1 : 0) + (holdPiece ? 1 : 0);
 
   return (
     <>
       <SkyBubbles />
+      <ShoutcasterAvatar />
 
       <div className="app-container" id="app-container">
         <Header
