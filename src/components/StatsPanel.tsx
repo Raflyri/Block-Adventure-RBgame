@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { GameModeType, ThemeId } from '../types/game';
 import { CanvasRenderer } from '../services/renderer';
+import { getClusterClearThreshold } from '../services/sandEngine';
 
 interface StatsPanelProps {
   score: number;
@@ -94,9 +95,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
             <span className="card-label" id="objective-title" style={{ color: '#67e8f9' }}>SAND PHYS</span>
           </div>
           <span id="objective-value" className="card-value highlight-text" style={{ color: '#22d3ee' }}>
-            60×120
+            {level <= 2 ? '4 Warna' : level <= 4 ? '5 Warna' : '7 Warna (Maks)'}
           </span>
-          <span id="objective-sub" className="speed-tag" style={{ color: '#a5f3fc' }}>Hubungkan Kiri-Kanan!</span>
+          <span id="objective-sub" className="speed-tag" style={{ color: '#a5f3fc' }}>
+            Ambang Blob: {getClusterClearThreshold(level)} Butir | 🪨 Dead Sand
+          </span>
         </div>
       )}
 

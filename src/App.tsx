@@ -15,7 +15,8 @@ import {
   BASE_TETROMINOES,
   CLASSIC_PIECE_KEYS,
   LINE_POINTS,
-  PUZZLE_STAGES
+  PUZZLE_STAGES,
+  STONE_SPAWN_CHANCE
 } from './constants/game';
 import { sfx } from './services/audio';
 import { haptics } from './services/haptics';
@@ -30,7 +31,15 @@ import {
   detonateSandBomb,
   stepSandPhysics,
   findAndClearSandBridges,
-  isSandToppedOut
+  isSandToppedOut,
+  getSandPiecePool,
+  getDominantSurfaceColor,
+  getSandHighestY,
+  getSandLevelPalette,
+  getThemeColorIdMap,
+  COLOR_ID_TO_TYPE,
+  STONE_COLOR_ID,
+  getClusterClearThreshold
 } from './services/sandEngine';
 import { getTodayDateString, getDateSeed, createMulberry32 } from './services/prng';
 
@@ -393,6 +402,18 @@ export const App: React.FC = () => {
     }, 1200);
   }, []);
 
+  const triggerCustomBanner = useCallback((text: string, isBomb: boolean = false) => {
+    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+    setBannerInfo({
+      text,
+      isBomb,
+      visible: true
+    });
+    bannerTimerRef.current = setTimeout(() => {
+      setBannerInfo((prev) => ({ ...prev, visible: false }));
+    }, 1400);
+  }, []);
+
   const triggerBombBanner = useCallback((bonus: number, count: number) => {
     if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
     setBannerInfo({
@@ -431,7 +452,44 @@ export const App: React.FC = () => {
       return bagRef.current.pop() || 'I';
     }
 
-    // Classic Bag Randomizer + Candy Bomb
+    // --- Sand Mode: Level-Based Dynamic Color Pool & Smart Surface Weighting ---
+    if (gameModeRef.current === 'sand') {
+      piecesSinceLastBombRef.current++;
+
+      // Adaptive Bomb Lifeline: If sand pile is congested (reaches top 50%), spawn bomb faster
+      const highestSandY = getSandHighestY(sandGridRef.current);
+      const isCongested = highestSandY <= 60; // top 50% of 120 height
+      const bombThreshold = isCongested ? 8 : 16;
+      const mustBombThreshold = isCongested ? 14 : 24;
+
+      if (piecesSinceLastBombRef.current >= bombThreshold) {
+        const chance = piecesSinceLastBombRef.current >= mustBombThreshold ? 1.0 : (isCongested ? 0.45 : 0.25);
+        if (Math.random() < chance) {
+          piecesSinceLastBombRef.current = 0;
+          return 'BOMB';
+        }
+      }
+
+      // Phase 2: Stone (Dead Sand) Obstacle Mechanic (12% spawn chance)
+      if (Math.random() < STONE_SPAWN_CHANCE) {
+        return 'STONE';
+      }
+
+      if (bagRef.current.length === 0) {
+        // Shapes are standard classic tetrominoes so full shape variety is preserved
+        const newBag = [...CLASSIC_PIECE_KEYS];
+        // Shuffle
+        for (let i = newBag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [newBag[i], newBag[j]] = [newBag[j], newBag[i]];
+        }
+        bagRef.current = newBag;
+      }
+
+      return bagRef.current.pop() || 'I';
+    }
+
+    // --- Classic Bag Randomizer + Candy Bomb ---
     piecesSinceLastBombRef.current++;
     if (piecesSinceLastBombRef.current >= 16) {
       const chance = piecesSinceLastBombRef.current >= 24 ? 1.0 : 0.25;
@@ -456,6 +514,77 @@ export const App: React.FC = () => {
     if (!type) return null;
     const def = BASE_TETROMINOES[type];
     if (!def) return null;
+
+    if (gameModeRef.current === 'sand') {
+      if (type === 'BOMB') {
+        return {
+          type,
+          matrix: def.shape.map((row) => [...row]),
+          color: '#ff2a2a',
+          highlight: '#ff9900',
+          isBomb: true,
+          x: Math.floor((COLS - def.shape[0].length) / 2),
+          y: 0,
+          sandColorId: 8
+        };
+      }
+
+      if (type === 'STONE') {
+        const stoneShapes = [
+          [[1, 1], [1, 1]], // 2x2 solid stone slab
+          [[1, 1, 1], [0, 1, 0]], // T-shaped stone
+          [[1, 1, 1, 1]], // 4x1 stone bar
+          [[1, 1, 0], [0, 1, 1]] // Z-shaped stone
+        ];
+        const shape = stoneShapes[Math.floor(Math.random() * stoneShapes.length)];
+        const themeColors = THEMES[themeId]?.colors;
+        const stoneColor = (themeColors && themeColors.STONE) || '#64748b';
+
+        return {
+          type: 'STONE',
+          matrix: shape.map((row) => [...row]),
+          color: stoneColor,
+          highlight: '#94a3b8',
+          isBomb: false,
+          isStone: true,
+          x: Math.floor((COLS - shape[0].length) / 2),
+          y: 0,
+          sandColorId: STONE_COLOR_ID
+        };
+      }
+
+      // Dynamic Color Progression for Sand Mode:
+      // Assign sandColorId strictly from the active level's allowed color palette
+      const palette = getSandLevelPalette(levelRef.current);
+      const domColorId = getDominantSurfaceColor(sandGridRef.current, levelRef.current);
+      let assignedColorId: number;
+
+      // Smart Color Weighting / Bag Bias (Heuristic):
+      // If a color dominates >= 35% of settled surface, give 50% chance to pick it
+      if (domColorId && palette.allowedColorIds.includes(domColorId) && Math.random() < 0.5) {
+        assignedColorId = domColorId;
+      } else {
+        const allowed = palette.allowedColorIds;
+        assignedColorId = allowed[Math.floor(Math.random() * allowed.length)];
+      }
+
+      const colorTypeKey = COLOR_ID_TO_TYPE[assignedColorId] || type;
+      const themeColors = THEMES[themeId]?.colors;
+      const pieceColor = (themeColors && themeColors[colorTypeKey]) || BASE_TETROMINOES[colorTypeKey]?.color || def.color;
+      const pieceHighlight = BASE_TETROMINOES[colorTypeKey]?.highlight || def.highlight;
+
+      return {
+        type,
+        matrix: def.shape.map((row) => [...row]),
+        color: pieceColor,
+        highlight: pieceHighlight,
+        isBomb: false,
+        x: Math.floor((COLS - def.shape[0].length) / 2),
+        y: 0,
+        sandColorId: assignedColorId
+      };
+    }
+
     const themeColors = THEMES[themeId]?.colors;
     const pieceColor = (themeColors && themeColors[type]) || def.color;
 
@@ -759,7 +888,8 @@ export const App: React.FC = () => {
           cur.matrix,
           cur.x,
           cur.y,
-          cur.type
+          cur.type,
+          cur.sandColorId
         );
         sfx.playDrop();
         haptics.pieceLock();
@@ -1120,6 +1250,8 @@ export const App: React.FC = () => {
     haptics.menuTap();
     setGameMode(newMode);
     gameModeRef.current = newMode;
+    bagRef.current = [];
+    piecesSinceLastBombRef.current = 0;
     try {
       localStorage.setItem('rblock_game_mode', newMode);
     } catch {}
@@ -1383,9 +1515,11 @@ export const App: React.FC = () => {
           }
         }
 
-        // Automatic Drop
+        // Automatic Drop (Phase 3: Steeper speed curve for Sand Mode tension!)
         dropCounterRef.current += delta;
-        const baseDropInterval = Math.max(80, 1000 - (levelRef.current - 1) * 90);
+        const baseDropInterval = gameModeRef.current === 'sand'
+          ? Math.max(70, 750 - (levelRef.current - 1) * 115) // Lv 1: 750ms -> Lv 3: 520ms -> Lv 5: 290ms -> Lv 7+: 70ms!
+          : Math.max(80, 1000 - (levelRef.current - 1) * 90);
         const currentSpeed = gameSpeedMultiplierRef.current || 1.0;
         const dropInterval = Math.max(40, baseDropInterval / currentSpeed);
         if (dropCounterRef.current >= dropInterval) {
@@ -1407,27 +1541,51 @@ export const App: React.FC = () => {
           if (sandCheckCooldownRef.current >= 4 || !anyMoved) {
             sandCheckCooldownRef.current = 0;
             const paletteMap = getThemeColorIdMap(themeId);
-            const clearedClusters = findAndClearSandBridges(sandGridRef.current, paletteMap);
+            const clearedClusters = findAndClearSandBridges(sandGridRef.current, paletteMap, levelRef.current);
 
             if (clearedClusters.length > 0) {
               let totalGrainsCleared = 0;
+              let totalStoneBroken = 0;
+              let hasFull = false;
+              let hasWide = false;
+              let hasVertical = false;
+              let hasMassive = false;
               const bs = blockSizeRef.current;
 
               clearedClusters.forEach((cluster) => {
                 totalGrainsCleared += cluster.indices.length;
+                if (cluster.clearedStoneGrainsCount) {
+                  totalStoneBroken += cluster.clearedStoneGrainsCount;
+                }
+                if (cluster.clearType === 'full_span') hasFull = true;
+                if (cluster.clearType === 'wide_span') hasWide = true;
+                if (cluster.clearType === 'vertical_span') hasVertical = true;
+                if (cluster.clearType === 'massive_cluster') hasMassive = true;
 
-                for (let i = 0; i < cluster.indices.length; i += 8) {
+                for (let i = 0; i < cluster.indices.length; i += 6) {
                   const idx = cluster.indices[i];
                   const gx = (idx % sandGridRef.current.width) / sandGridRef.current.scale;
                   const gy = Math.floor(idx / sandGridRef.current.width) / sandGridRef.current.scale;
                   particles.spawnLineClearSparkle((gx + 0.5) * bs, (gy + 0.5) * bs, cluster.colorHex);
                 }
+
+                // Phase 2: Spawn stone crumbling particles for destroyed Dead Sand grains
+                if (cluster.stoneIndices && cluster.stoneIndices.length > 0) {
+                  for (let s = 0; s < cluster.stoneIndices.length; s += 3) {
+                    const sIdx = cluster.stoneIndices[s];
+                    const sx = (sIdx % sandGridRef.current.width) / sandGridRef.current.scale;
+                    const sy = Math.floor(sIdx / sandGridRef.current.width) / sandGridRef.current.scale;
+                    particles.spawnStoneCrumble((sx + 0.5) * bs, (sy + 0.5) * bs);
+                  }
+                }
               });
 
               const bridgesCount = clearedClusters.length;
               const basePoints = bridgesCount * 150 * levelRef.current;
-              const grainBonus = Math.floor(totalGrainsCleared * 0.5) * levelRef.current;
-              const totalEarned = basePoints + grainBonus;
+              const grainBonus = Math.floor(totalGrainsCleared * 0.75) * levelRef.current;
+              const comboBonus = (hasMassive || hasVertical) ? 250 * levelRef.current : 0;
+              const stoneBonus = Math.floor(totalStoneBroken * 1.5) * levelRef.current;
+              const totalEarned = basePoints + grainBonus + comboBonus + stoneBonus;
 
               const nextScore = scoreRef.current + totalEarned;
               scoreRef.current = nextScore;
@@ -1440,14 +1598,33 @@ export const App: React.FC = () => {
               linesRef.current = nextLines;
               setLines(nextLines);
 
-              const nextLevel = Math.floor(nextLines / 10) + 1;
-              levelRef.current = nextLevel;
-              setLevel(nextLevel);
+              // Level up every 8 cleared spans/clusters in Sand Mode
+              const nextLevel = Math.floor(nextLines / 8) + 1;
+              if (nextLevel !== levelRef.current) {
+                levelRef.current = nextLevel;
+                setLevel(nextLevel);
+                // When level increases, reset bag to incorporate new colors
+                bagRef.current = [];
+              }
 
-              sfx.playLineClear(bridgesCount >= 2);
+              sfx.playLineClear(bridgesCount >= 2 || hasFull || hasVertical);
               haptics.sandBridgeClear(bridgesCount);
-              triggerScreenShake(bridgesCount >= 2);
-              triggerBanner(bridgesCount, 1);
+              triggerScreenShake(bridgesCount >= 2 || hasFull || hasMassive || hasVertical || totalStoneBroken > 20);
+
+              const stoneTag = totalStoneBroken > 0 ? ` (+${totalStoneBroken} 🪨)` : '';
+              if (hasFull) {
+                triggerCustomBanner(`FULL BRIDGE! ⏳ +${totalEarned}${stoneTag}`);
+              } else if (hasWide) {
+                triggerCustomBanner(`WIDE SPAN! 🌈 +${totalEarned}${stoneTag}`);
+              } else if (hasVertical) {
+                triggerCustomBanner(`VERTICAL TOWER! ⚡ +${totalEarned}${stoneTag}`);
+              } else if (hasMassive) {
+                triggerCustomBanner(`MEGA BLOB! 💥 +${totalEarned} (${totalGrainsCleared} Butir${stoneTag}!)`);
+              } else if (totalStoneBroken > 0) {
+                triggerCustomBanner(`STONE CRUSHED! 🪨 +${totalEarned} (${totalStoneBroken} Batu!)`);
+              } else {
+                triggerBanner(bridgesCount, 1);
+              }
             }
           }
         }
@@ -1520,7 +1697,7 @@ export const App: React.FC = () => {
                 }
                 CanvasRenderer.drawGhostPiece(
                   ctx,
-                  { x: piece.x, y: gy, matrix: piece.matrix, color: piece.color, isBomb: piece.isBomb },
+                  { x: piece.x, y: gy, matrix: piece.matrix, color: piece.color, isBomb: piece.isBomb, isStone: piece.isStone },
                   bs
                 );
               }

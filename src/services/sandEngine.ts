@@ -1,22 +1,156 @@
 // src/services/sandEngine.ts
-import { SandGridState, ClearedSandCluster, TetrominoType } from '../types/game';
-import { BOARD_WIDTH, BOARD_HEIGHT } from '../constants/game';
+import { SandGridState, ClearedSandCluster, TetrominoType, ThemeId } from '../types/game';
+import { BOARD_WIDTH, BOARD_HEIGHT, THEMES } from '../constants/game';
 
 export const SAND_SCALE = 6; // 1 blok Tetris = 6x6 = 36 butir pasir
 export const SAND_WIDTH = BOARD_WIDTH * SAND_SCALE;   // 60
 export const SAND_HEIGHT = BOARD_HEIGHT * SAND_SCALE; // 120
 
-// Pemetaan Tipe Tetromino ke ID Warna Numerik (1 - 8)
+export const STONE_COLOR_ID = 9;
+
+// Pemetaan Tipe Tetromino ke ID Warna Numerik (1 - 9)
 export const TYPE_TO_COLOR_ID: Record<TetrominoType, number> = {
-  I: 1,
-  J: 2,
-  L: 3,
-  O: 4,
-  S: 5,
-  T: 6,
-  Z: 7,
+  I: 1, // Cyan
+  J: 2, // Blue
+  L: 3, // Orange
+  O: 4, // Yellow
+  S: 5, // Green
+  T: 6, // Purple
+  Z: 7, // Red
   BOMB: 8,
+  STONE: 9,
 };
+
+export const COLOR_ID_TO_TYPE: Record<number, TetrominoType> = {
+  1: 'I',
+  2: 'J',
+  3: 'L',
+  4: 'O',
+  5: 'S',
+  6: 'T',
+  7: 'Z',
+  8: 'BOMB',
+  9: 'STONE',
+};
+
+export function getThemeColorIdMap(themeId: ThemeId): Record<number, string> {
+  const theme = THEMES[themeId] || THEMES.candy;
+  const c = theme.colors;
+  return {
+    1: c.I || '#00e5ff',
+    2: c.J || '#4361ee',
+    3: c.L || '#ff7b00',
+    4: c.O || '#ffbe0b',
+    5: c.S || '#06d6a0',
+    6: c.T || '#a370f7',
+    7: c.Z || '#ff4d6d',
+    8: c.BOMB || '#ff2a2a',
+    9: c.STONE || '#64748b'
+  };
+}
+
+export interface SandLevelPalette {
+  levelTier: string;
+  allowedColorIds: number[];
+  allowedTypes: TetrominoType[];
+}
+
+/**
+ * 1. Aggressive Color Scaling (Phase 1 Balancing):
+ * - Level 1–2: 4 warna (Red, Blue, Yellow, Cyan)
+ * - Level 3–4: 5 warna (+ Green)
+ * - Level 5+: Full 7 warna (+ Purple, + Orange)
+ */
+export function getSandLevelPalette(level: number): SandLevelPalette {
+  if (level <= 2) {
+    return {
+      levelTier: 'Starter',
+      allowedColorIds: [7, 2, 4, 1], // Red, Blue, Yellow, Cyan (4 warna)
+      allowedTypes: ['Z', 'J', 'O', 'I']
+    };
+  } else if (level <= 4) {
+    return {
+      levelTier: 'Medium',
+      allowedColorIds: [7, 2, 4, 1, 5], // + Green (5 warna)
+      allowedTypes: ['Z', 'J', 'O', 'I', 'S']
+    };
+  } else {
+    return {
+      levelTier: 'Master',
+      allowedColorIds: [7, 2, 4, 1, 5, 6, 3], // Full 7 colors
+      allowedTypes: ['Z', 'J', 'O', 'I', 'S', 'T', 'L']
+    };
+  }
+}
+
+/**
+ * Dynamic Cluster Area Threshold (Mega Blob nerf):
+ * Level 1: 220 grains
+ * Level 2: 280 grains
+ * Level 3: 350 grains
+ * Level 4: 420 grains
+ * Level 5: 500 grains
+ * Level 6+: Capped at 700 grains
+ */
+export function getClusterClearThreshold(level: number): number {
+  if (level <= 1) return 220;
+  if (level === 2) return 280;
+  if (level === 3) return 350;
+  if (level === 4) return 420;
+  if (level === 5) return 500;
+  return Math.min(700, 500 + (level - 5) * 60);
+}
+
+/**
+ * Backward-compatible helper untuk mendapatkan daftar tipe balok sesuai level
+ */
+export function getSandPiecePool(level: number): TetrominoType[] {
+  return getSandLevelPalette(level).allowedTypes;
+}
+
+/**
+ * Smart Color Weighting / Bag Bias (Heuristic):
+ * Mengecek apakah suatu warna mendominasi >= 35% permukaan atas pasir.
+ * Mengembalikan ID warna tersebut agar spawn berikutnya dapat diprioritaskan.
+ */
+export function getDominantSurfaceColor(
+  grid: SandGridState,
+  level: number
+): number | null {
+  const { width, height, cells } = grid;
+  const counts: Record<number, number> = {};
+  let surfaceCount = 0;
+
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const color = cells[y * width + x];
+      if (color !== 0 && color !== 8 && color !== 9) {
+        counts[color] = (counts[color] || 0) + 1;
+        surfaceCount++;
+        break; // Dapatkan butir pasir paling atas di kolom x
+      }
+    }
+  }
+
+  if (surfaceCount < 8) return null;
+
+  let maxColorId = 0;
+  let maxCount = 0;
+  for (const [idStr, count] of Object.entries(counts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxColorId = parseInt(idStr, 10);
+    }
+  }
+
+  const ratio = maxCount / surfaceCount;
+  const allowed = getSandLevelPalette(level).allowedColorIds;
+  if (ratio >= 0.35 && allowed.includes(maxColorId)) {
+    return maxColorId;
+  }
+
+  return null;
+}
 
 export function createSandGrid(): SandGridState {
   const size = SAND_WIDTH * SAND_HEIGHT;
@@ -27,6 +161,8 @@ export function createSandGrid(): SandGridState {
     cells: new Uint8Array(size),
     shade: new Uint8Array(size),
     updated: new Uint8Array(size),
+    connectedToLeft: new Uint8Array(size),
+    nearClearMask: new Uint8Array(size),
   };
 }
 
@@ -34,11 +170,103 @@ export function clearSandGrid(grid: SandGridState): void {
   grid.cells.fill(0);
   grid.shade.fill(0);
   grid.updated.fill(0);
+  if (grid.connectedToLeft) grid.connectedToLeft.fill(0);
+  if (grid.nearClearMask) grid.nearClearMask.fill(0);
 }
 
 /**
- * Mengecek apakah posisi Tetromino (dalam koordinat standar 10x20)
- * bertabrakan dengan dinding, lantai, atau tumpukan pasir yang sudah ada.
+ * Mengecek dan menandai butir-butir pasir yang terhubung ke dinding kiri (x = 0)
+ * serta menandai kluster yang mendekati ambang clear (near-clear glow hint).
+ */
+export function updateSandVisualHints(grid: SandGridState, level: number = 1): void {
+  const { width, height, cells, connectedToLeft, nearClearMask } = grid;
+  if (!connectedToLeft || !nearClearMask) return;
+
+  connectedToLeft.fill(0);
+  nearClearMask.fill(0);
+
+  const visited = new Uint8Array(width * height);
+  const queue = new Int32Array(width * height);
+  const massiveNearThreshold = Math.floor(getClusterClearThreshold(level) * 0.72);
+
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width;
+    for (let x = 0; x < width; x++) {
+      const startIdx = rowOffset + x;
+      const color = cells[startIdx];
+      // Exclude empty, bomb (8), and stone / dead sand (9)
+      if (color === 0 || color === 8 || color === 9 || visited[startIdx]) continue;
+
+      let head = 0;
+      let tail = 0;
+      queue[tail++] = startIdx;
+      visited[startIdx] = 1;
+
+      const comp: number[] = [];
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
+
+      while (head < tail) {
+        const currIdx = queue[head++];
+        comp.push(currIdx);
+
+        const cx = currIdx % width;
+        const cy = (currIdx / width) | 0;
+
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
+
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = cy + dy;
+          if (ny < 0 || ny >= height) continue;
+          const nRow = ny * width;
+
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = cx + dx;
+            if (nx < 0 || nx >= width) continue;
+
+            const nIdx = nRow + nx;
+            if (!visited[nIdx] && cells[nIdx] === color) {
+              visited[nIdx] = 1;
+              queue[tail++] = nIdx;
+            }
+          }
+        }
+      }
+
+      // Cek apakah menyentuh dinding kiri
+      const touchesLeft = minX === 0;
+      if (touchesLeft) {
+        for (let i = 0; i < comp.length; i++) {
+          connectedToLeft[comp[i]] = 1;
+        }
+      }
+
+      // Cek apakah kluster mendekati kondisi clear (Near-Clear Hint)
+      const widthSpan = maxX - minX + 1;
+      const heightSpan = maxY - minY + 1;
+      const touchesFloor = maxY >= height - 2;
+
+      const isNearHorizontal = widthSpan >= 45; // mendekati 54/60
+      const isNearMassive = comp.length >= massiveNearThreshold;
+      const isNearVertical = touchesFloor && heightSpan >= 32;
+
+      if (isNearHorizontal || isNearMassive || isNearVertical) {
+        for (let i = 0; i < comp.length; i++) {
+          nearClearMask[comp[i]] = 1;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Mengecek apakah posisi Tetromino bertabrakan dengan batas atau pasir.
  */
 export function checkSandCollision(
   grid: SandGridState,
@@ -55,19 +283,15 @@ export function checkSandCollision(
       const boardX = pieceX + c;
       const boardY = pieceY + r;
 
-      // Cek batas luar dinding & lantai
       if (boardX < 0 || boardX >= BOARD_WIDTH || boardY >= BOARD_HEIGHT) {
         return true;
       }
 
-      // Abaikan sel yang masih berada di atas papan (boardY < 0)
       if (boardY < 0) continue;
 
-      // Cek apakah ada butir pasir di dalam sub-grid NxN milik blok ini
       const startX = boardX * scale;
       const startY = boardY * scale;
 
-      // Gunakan threshold (> 2 butir) agar gesekan tepi sedikit tidak langsung memblokir gerakan
       let occupiedGrains = 0;
       for (let sy = 0; sy < scale; sy++) {
         const y = startY + sy;
@@ -88,17 +312,19 @@ export function checkSandCollision(
 }
 
 /**
- * Mengubah Tetromino yang mengunci (lock down) menjadi butiran pasir.
+ * Mengubah Tetromino yang mengunci menjadi butir pasir.
+ * Mendukung sandColorId eksplisit agar bentuk Tetris apa pun bisa memakai warna level aktif.
  */
 export function imprintPieceToSand(
   grid: SandGridState,
   shape: number[][],
   pieceX: number,
   pieceY: number,
-  type: TetrominoType | string
+  type: TetrominoType | string,
+  sandColorId?: number
 ): boolean {
   const { width, height, scale, cells, shade } = grid;
-  const colorId = TYPE_TO_COLOR_ID[type as TetrominoType] || 1;
+  const colorId = sandColorId || TYPE_TO_COLOR_ID[type as TetrominoType] || 1;
   let toppedOut = false;
 
   for (let r = 0; r < shape.length; r++) {
@@ -127,7 +353,6 @@ export function imprintPieceToSand(
           const idx = rowOffset + x;
 
           cells[idx] = colorId;
-          // Variasi tekstur pasir (nilai 180..255 untuk variasi terang/gelap)
           const isBorder = sx === 0 || sy === 0 || sx === scale - 1 || sy === scale - 1;
           shade[idx] = isBorder
             ? 210 + Math.floor(Math.random() * 25)
@@ -137,6 +362,7 @@ export function imprintPieceToSand(
     }
   }
 
+  updateSandVisualHints(grid);
   return toppedOut;
 }
 
@@ -145,11 +371,11 @@ export function imprintPieceToSand(
  */
 export function detonateSandBomb(
   grid: SandGridState,
-  centerX: number, // koordinat board (0..10)
-  centerY: number, // koordinat board (0..20)
-  radiusBlocks: number = 2.0
+  centerX: number,
+  centerY: number,
+  radiusBlocks: number = 2.2
 ): number {
-  const { width, height, scale, cells, shade } = grid;
+  const { width, height, scale, cells, shade, connectedToLeft, nearClearMask } = grid;
   const cx = Math.floor((centerX + 0.5) * scale);
   const cy = Math.floor((centerY + 0.5) * scale);
   const rPx = Math.floor(radiusBlocks * scale);
@@ -166,27 +392,27 @@ export function detonateSandBomb(
         if (cells[idx] !== 0) {
           cells[idx] = 0;
           shade[idx] = 0;
+          if (connectedToLeft) connectedToLeft[idx] = 0;
+          if (nearClearMask) nearClearMask[idx] = 0;
           destroyedCount++;
         }
       }
     }
   }
 
+  updateSandVisualHints(grid);
   return destroyedCount;
 }
 
 /**
- * Menjalankan 1 langkah (step) simulasi Cellular Automata untuk pasir jatuh.
- * Mengembalikan `true` jika masih ada butiran pasir yang bergerak.
+ * 1 langkah simulasi Cellular Automata gravitasi pasir.
  */
 export function stepSandPhysics(grid: SandGridState, tickParity: number): boolean {
   const { width, height, cells, shade, updated } = grid;
   updated.fill(0);
   let moved = false;
 
-  // Iterasi dari baris kedua paling bawah ke atas
   for (let y = height - 2; y >= 0; y--) {
-    // Bergantian scan kiri-ke-kanan dan kanan-ke-kiri agar gundukan simetris
     const leftToRight = ((y + tickParity) & 1) === 0;
 
     for (let i = 0; i < width; i++) {
@@ -198,7 +424,6 @@ export function stepSandPhysics(grid: SandGridState, tickParity: number): boolea
 
       const belowIdx = (y + 1) * width + x;
 
-      // 1. Cek tepat di bawah (x, y + 1)
       if (cells[belowIdx] === 0) {
         cells[belowIdx] = color;
         shade[belowIdx] = shade[idx];
@@ -209,7 +434,6 @@ export function stepSandPhysics(grid: SandGridState, tickParity: number): boolea
         continue;
       }
 
-      // 2. Cek diagonal bawah kiri & kanan dengan urutan acak/bergantian
       const preferLeft = ((x + y + tickParity) & 1) === 0;
       const dx1 = preferLeft ? -1 : 1;
       const dx2 = preferLeft ? 1 : -1;
@@ -248,100 +472,200 @@ export function stepSandPhysics(grid: SandGridState, tickParity: number): boolea
 }
 
 /**
- * Mencari dan menghapus kelompok pasir berwarna sama yang menyambung
- * tanpa putus dari dinding kiri (x = 0) sampai dinding kanan (x = width - 1).
+ * 2. Multi-Condition Clearing Engine (Strict Balancing & Obstacle Destruction)
+ * Kondisi Clear:
+ *   1. Strict Horizontal Span:
+ *      - Full Span (x=0 ke x >= width-2) DENGAN ketebalan rata-rata >= 2.6px dan >= 160 grains
+ *      - ATAU Wide Span (lebar kluster >= 90% lebar papan) DENGAN ketebalan >= 2.8px dan >= 150 grains
+ *   2. Strict Vertical Connection:
+ *      - Menyentuh lantai dan membentang tinggi (tinggi >= 45px dan >= 140 grains dan puncak <= 35% papan)
+ *   3. Dynamic Cluster / Mass Clear:
+ *      - Jumlah butir terhubung >= getClusterClearThreshold(level) (Lv 1: 220, Lv 3: 350, Lv 5: 500, dst.)
+ *
+ * Efek Ke Dead Sand (Stone):
+ *   - Butir pasir Stone (ID 9) TIDAK BISA memicu clear sendiri.
+ *   - Ketika kluster warna normal meledak/clear, semua butir Stone yang bersentuhan langsung (8 arah) ikut hancur!
  */
 export function findAndClearSandBridges(
   grid: SandGridState,
-  paletteMap: Record<number, string>
+  paletteMap: Record<number, string>,
+  level: number = 1
 ): ClearedSandCluster[] {
-  const { width, height, scale, cells, shade } = grid;
+  const { width, height, scale, cells, shade, connectedToLeft, nearClearMask } = grid;
   const visited = new Uint8Array(width * height);
   const clearedClusters: ClearedSandCluster[] = [];
 
-  // Pre-allocated queue untuk BFS cepat
   const queue = new Int32Array(width * height);
+  const widthThreshold90 = Math.ceil(width * 0.90); // 54 kolom
+  const clusterThreshold = getClusterClearThreshold(level);
 
-  for (let startY = 0; startY < height; startY++) {
-    const startIdx = startY * width; // x = 0 (Dinding Kiri)
-    const targetColor = cells[startIdx];
+  for (let y = height - 1; y >= 0; y--) {
+    const rowOffset = y * width;
+    for (let x = 0; x < width; x++) {
+      const startIdx = rowOffset + x;
+      const targetColor = cells[startIdx];
 
-    if (targetColor === 0 || visited[startIdx]) continue;
+      // Exclude kosong (0), BOMB (8), dan STONE (9)
+      if (targetColor === 0 || targetColor === 8 || targetColor === 9 || visited[startIdx]) continue;
 
-    let head = 0;
-    let tail = 0;
-    queue[tail++] = startIdx;
-    visited[startIdx] = 1;
+      let head = 0;
+      let tail = 0;
+      queue[tail++] = startIdx;
+      visited[startIdx] = 1;
 
-    let touchesRightWall = false;
-    const componentIndices: number[] = [];
-    let sumX = 0;
-    let sumY = 0;
+      const componentIndices: number[] = [];
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
+      let sumX = 0;
+      let sumY = 0;
 
-    while (head < tail) {
-      const currIdx = queue[head++];
-      componentIndices.push(currIdx);
+      while (head < tail) {
+        const currIdx = queue[head++];
+        componentIndices.push(currIdx);
 
-      const cx = currIdx % width;
-      const cy = (currIdx / width) | 0;
+        const cx = currIdx % width;
+        const cy = (currIdx / width) | 0;
 
-      sumX += cx;
-      sumY += cy;
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
 
-      if (cx === width - 1) {
-        touchesRightWall = true;
-      }
+        sumX += cx;
+        sumY += cy;
 
-      // 8-directional connectivity (termasuk diagonal rapat) agar aliran pasir wajar tersambung
-      for (let dy = -1; dy <= 1; dy++) {
-        const ny = cy + dy;
-        if (ny < 0 || ny >= height) continue;
-        const rowOffset = ny * width;
+        // 8-directional connectivity (horizontal, vertical, diagonal)
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = cy + dy;
+          if (ny < 0 || ny >= height) continue;
+          const nRowOffset = ny * width;
 
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          const nx = cx + dx;
-          if (nx < 0 || nx >= width) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = cx + dx;
+            if (nx < 0 || nx >= width) continue;
 
-          const nIdx = rowOffset + nx;
-          if (!visited[nIdx] && cells[nIdx] === targetColor) {
-            visited[nIdx] = 1;
-            queue[tail++] = nIdx;
+            const nIdx = nRowOffset + nx;
+            if (!visited[nIdx] && cells[nIdx] === targetColor) {
+              visited[nIdx] = 1;
+              queue[tail++] = nIdx;
+            }
           }
         }
       }
-    }
 
-    if (touchesRightWall && componentIndices.length > 0) {
-      // Hapus seluruh butir pasir dalam jembatan ini
-      for (let i = 0; i < componentIndices.length; i++) {
-        const idx = componentIndices[i];
-        cells[idx] = 0;
-        shade[idx] = 0;
+      const widthSpan = maxX - minX + 1;
+      const heightSpan = maxY - minY + 1;
+      const grainCount = componentIndices.length;
+      const touchesFloor = maxY >= height - 2;
+      const avgThickness = grainCount / widthSpan;
+
+      // 1. Strict Horizontal Span (membutuhkan ketebalan nyata)
+      const isFullSpan = minX === 0 && maxX >= width - 2 && avgThickness >= 2.6 && grainCount >= 160;
+      const isWideSpan = widthSpan >= widthThreshold90 && avgThickness >= 2.8 && grainCount >= 150;
+
+      // 2. Strict Vertical Connection Clear
+      const isVerticalSpan = touchesFloor && heightSpan >= 45 && grainCount >= 140 && (minY <= Math.floor(height * 0.35));
+
+      // 3. Dynamic Cluster / Mass Clear (skala berdasarkan level)
+      const isMassiveCluster = grainCount >= clusterThreshold;
+
+      if (isFullSpan || isWideSpan || isVerticalSpan || isMassiveCluster) {
+        // Cari semua butir Stone (Dead Sand) yang bersentuhan langsung dengan kluster ini
+        const adjacentStoneIndices: number[] = [];
+        const stoneVisitedInWave = new Uint8Array(width * height);
+
+        for (let i = 0; i < componentIndices.length; i++) {
+          const idx = componentIndices[i];
+          const cx = idx % width;
+          const cy = (idx / width) | 0;
+
+          for (let dy = -1; dy <= 1; dy++) {
+            const ny = cy + dy;
+            if (ny < 0 || ny >= height) continue;
+            const nRow = ny * width;
+
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const nx = cx + dx;
+              if (nx < 0 || nx >= width) continue;
+
+              const nIdx = nRow + nx;
+              if (cells[nIdx] === 9 && !stoneVisitedInWave[nIdx]) {
+                stoneVisitedInWave[nIdx] = 1;
+                adjacentStoneIndices.push(nIdx);
+              }
+            }
+          }
+        }
+
+        // Hancurkan butir kluster warna
+        for (let i = 0; i < componentIndices.length; i++) {
+          const idx = componentIndices[i];
+          cells[idx] = 0;
+          shade[idx] = 0;
+          if (connectedToLeft) connectedToLeft[idx] = 0;
+          if (nearClearMask) nearClearMask[idx] = 0;
+        }
+
+        // Hancurkan butir Stone yang bertetangga
+        for (let i = 0; i < adjacentStoneIndices.length; i++) {
+          const sIdx = adjacentStoneIndices[i];
+          cells[sIdx] = 0;
+          shade[sIdx] = 0;
+          if (connectedToLeft) connectedToLeft[sIdx] = 0;
+          if (nearClearMask) nearClearMask[sIdx] = 0;
+        }
+
+        const avgX = sumX / grainCount / scale;
+        const avgY = sumY / grainCount / scale;
+
+        const clearType: 'full_span' | 'wide_span' | 'vertical_span' | 'massive_cluster' = isFullSpan
+          ? 'full_span'
+          : isWideSpan
+          ? 'wide_span'
+          : isVerticalSpan
+          ? 'vertical_span'
+          : 'massive_cluster';
+
+        clearedClusters.push({
+          colorId: targetColor,
+          colorHex: paletteMap[targetColor] || '#ffffff',
+          indices: componentIndices,
+          centroidX: avgX,
+          centroidY: avgY,
+          clearType,
+          grainsCount: grainCount,
+          widthSpan,
+          heightSpan,
+          stoneIndices: adjacentStoneIndices,
+          clearedStoneGrainsCount: adjacentStoneIndices.length,
+        });
       }
-
-      const avgX = sumX / componentIndices.length / scale;
-      const avgY = sumY / componentIndices.length / scale;
-
-      clearedClusters.push({
-        colorId: targetColor,
-        colorHex: paletteMap[targetColor] || '#ffffff',
-        indices: componentIndices,
-        centroidX: avgX,
-        centroidY: avgY,
-      });
     }
   }
 
+  updateSandVisualHints(grid, level);
   return clearedClusters;
 }
 
-/**
- * Mengecek apakah tumpukan pasir sudah mencapai batas bahaya di atas (Game Over).
- */
+export function getSandHighestY(grid: SandGridState): number {
+  const { width, height, cells } = grid;
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width;
+    for (let x = 0; x < width; x++) {
+      if (cells[rowOffset + x] !== 0) {
+        return y;
+      }
+    }
+  }
+  return height;
+}
+
 export function isSandToppedOut(grid: SandGridState): boolean {
   const { width, scale, cells } = grid;
-  // Cek 2 sub-baris teratas
   for (let y = 0; y < Math.min(2, scale); y++) {
     const rowOffset = y * width;
     for (let x = 0; x < width; x++) {

@@ -28,7 +28,8 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       S: '#06d6a0',
       T: '#a370f7',
       Z: '#ff4d6d',
-      BOMB: '#ff2a2a'
+      BOMB: '#ff2a2a',
+      STONE: '#64748b'
     }
   },
   neon: {
@@ -44,7 +45,8 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       S: '#00ff66',
       T: '#b000ff',
       Z: '#ff007f',
-      BOMB: '#ff003c'
+      BOMB: '#ff003c',
+      STONE: '#94a3b8'
     }
   },
   pastel: {
@@ -60,7 +62,8 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       S: '#a8e6cf',
       T: '#d6a2e8',
       Z: '#ff9ebb',
-      BOMB: '#ff7675'
+      BOMB: '#ff7675',
+      STONE: '#b0bec5'
     }
   },
   retro: {
@@ -76,10 +79,13 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       S: '#9bbc0f',
       T: '#8bac0f',
       Z: '#9bbc0f',
-      BOMB: '#306230'
+      BOMB: '#306230',
+      STONE: '#4a5d35'
     }
   }
 };
+
+export const STONE_SPAWN_CHANCE = 0.12; // 12% probability in Sand Mode
 
 export const BASE_TETROMINOES: Record<string, TetrominoDef> = {
   I: {
@@ -152,6 +158,14 @@ export const BASE_TETROMINOES: Record<string, TetrominoDef> = {
     color: '#ff2a2a',
     highlight: '#ff9999',
     isBomb: true
+  },
+  STONE: {
+    shape: [
+      [1, 1],
+      [1, 1]
+    ],
+    color: '#64748b',
+    highlight: '#94a3b8'
   }
 };
 

@@ -208,6 +208,28 @@ export class ParticleSystem {
       });
     }
   }
+
+  spawnStoneCrumble(x: number, y: number) {
+    const stoneColors = ['#64748b', '#475569', '#94a3b8', '#334155'];
+    for (let i = 0; i < 4; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 4;
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 8,
+        y: y + (Math.random() - 0.5) * 8,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.5,
+        gravity: 0.24,
+        size: 2.5 + Math.random() * 4,
+        color: stoneColors[Math.floor(Math.random() * stoneColors.length)],
+        alpha: 1.0,
+        decay: 0.03 + Math.random() * 0.025,
+        rotation: Math.random() * Math.PI,
+        rotSpeed: (Math.random() - 0.5) * 0.3,
+        isDebris: true
+      });
+    }
+  }
 }
 
 export const particles = new ParticleSystem();

@@ -5,7 +5,7 @@ export type GameMode = 'classic' | 'sand';
 // Backward compatibility for existing multi-mode options (classic, daily, puzzle, sand)
 export type GameModeType = 'classic' | 'daily' | 'puzzle' | 'sand';
 
-export type TetrominoType = 'I' | 'J' | 'L' | 'O' | 'S' | 'T' | 'Z' | 'BOMB';
+export type TetrominoType = 'I' | 'J' | 'L' | 'O' | 'S' | 'T' | 'Z' | 'BOMB' | 'STONE';
 
 export interface Cell {
   filled: boolean;
@@ -22,18 +22,28 @@ export interface SandGridState {
   height: number;      // 120 (20 baris * 6 sub-sel)
   scale: number;       // 6 sub-sel per blok Tetris
   /**
-   * 0 = kosong, 1..7 = ID warna palet, 8 = BOMB grain
+   * 0 = kosong, 1..7 = ID warna palet, 8 = BOMB grain, 9 = STONE (Dead Sand) grain
    */
   cells: Uint8Array;
   /**
    * Menyimpan variasi kecerahan/tekstur tiap butir pasir (0..255)
-   * agar tampilan pasir organik dan berkilau seperti permen/kristal.
+   * agar tampilan pasir organik dan berkilau seperti permen/kristal/batu.
    */
   shade: Uint8Array;
   /**
    * Penanda apakah butir pasir sudah diupdate pada tick ini
    */
   updated: Uint8Array;
+  /**
+   * Penanda apakah butir pasir terhubung dengan dinding kiri (x = 0)
+   * untuk efek visual glow / kristal progres jembatan
+   */
+  connectedToLeft?: Uint8Array;
+  /**
+   * Penanda butir pasir yang hampir/sedang memenuhi kondisi clear
+   * untuk efek visual kilau / pulsasi antisipasi
+   */
+  nearClearMask?: Uint8Array;
 }
 
 export interface ClearedSandCluster {
@@ -42,6 +52,12 @@ export interface ClearedSandCluster {
   indices: number[]; // Indeks di dalam SandGridState.cells
   centroidX: number; // Dalam koordinat board (0..10) untuk popup skor & partikel
   centroidY: number; // Dalam koordinat board (0..20)
+  clearType?: 'full_span' | 'wide_span' | 'vertical_span' | 'massive_cluster';
+  grainsCount?: number;
+  widthSpan?: number;
+  heightSpan?: number;
+  stoneIndices?: number[];
+  clearedStoneGrainsCount?: number;
 }
 
 export interface LeaderboardEntry {
@@ -86,8 +102,10 @@ export interface ActivePiece {
   color: string;
   highlight: string;
   isBomb: boolean;
+  isStone?: boolean;
   x: number;
   y: number;
+  sandColorId?: number;
 }
 
 export interface PuzzleStage {

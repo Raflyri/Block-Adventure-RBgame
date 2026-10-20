@@ -43,18 +43,21 @@ export function renderSandGrid(
   canvasHeight: number,
   colorIdToHex: Record<number, string>
 ): void {
-  const { width, height, cells, shade } = sandGrid;
+  const { width, height, cells, shade, connectedToLeft, nearClearMask } = sandGrid;
   ensureSandBuffer(width, height);
 
   if (!sandOffscreenCtx || !sandImageData || !sandUint32Buffer || !sandOffscreenCanvas) {
     return;
   }
 
-  // Pre-compute RGB per colorId (1..8) untuk lookup instan di dalam loop
+  // Pre-compute RGB per colorId (1..9) untuk lookup instan di dalam loop
   const rgbLUT: [number, number, number][] = [[0, 0, 0]];
-  for (let id = 1; id <= 8; id++) {
-    rgbLUT[id] = hexToRgb(colorIdToHex[id] || '#ffffff');
+  for (let id = 1; id <= 9; id++) {
+    rgbLUT[id] = hexToRgb(colorIdToHex[id] || (id === 9 ? '#64748b' : '#ffffff'));
   }
+
+  const now = Date.now();
+  const pulse = (Math.sin(now * 0.008) + 1) * 0.5; // 0..1 smooth pulse
 
   const totalCells = width * height;
   for (let i = 0; i < totalCells; i++) {
@@ -64,12 +67,42 @@ export function renderSandGrid(
       continue;
     }
 
+    // Special Stone (Dead Sand) grain rendering
+    if (colorId === 9) {
+      const stoneShade = (shade[i] / 255) * 0.75 + 0.25;
+      const sr = (90 * stoneShade) | 0;
+      const sg = (105 * stoneShade) | 0;
+      const sb = (125 * stoneShade) | 0;
+      sandUint32Buffer[i] = (255 << 24) | (sb << 16) | (sg << 8) | sr;
+      continue;
+    }
+
     const [r, g, b] = rgbLUT[colorId] || [255, 255, 255];
     const s = shade[i] / 255; // Faktor kilau tekstur permen/pasir (0.7 - 1.0)
+    const isConnected = connectedToLeft ? connectedToLeft[i] === 1 : false;
+    const isNearClear = nearClearMask ? nearClearMask[i] === 1 : false;
 
-    const rr = (r * s) | 0;
-    const gg = (g * s) | 0;
-    const bb = (b * s) | 0;
+    let rr: number;
+    let gg: number;
+    let bb: number;
+
+    if (isNearClear) {
+      // Near-Clear Hint: Kluster mendekati ambang clear
+      const clearGlow = 1.32 + pulse * 0.35;
+      rr = Math.min(255, (r * s * clearGlow + 45 * pulse) | 0);
+      gg = Math.min(255, (g * s * clearGlow + 45 * pulse) | 0);
+      bb = Math.min(255, (b * s * clearGlow + 45 * pulse) | 0);
+    } else if (isConnected) {
+      // Butir pasir terhubung ke dinding kiri: Berikan kilau radiant kristal / glow
+      const glowFactor = 1.18;
+      rr = Math.min(255, (r * glowFactor * s + 38) | 0);
+      gg = Math.min(255, (g * glowFactor * s + 38) | 0);
+      bb = Math.min(255, (b * glowFactor * s + 38) | 0);
+    } else {
+      rr = (r * s) | 0;
+      gg = (g * s) | 0;
+      bb = (b * s) | 0;
+    }
 
     // Format Little-Endian ABGR untuk Uint32Array ImageData
     sandUint32Buffer[i] = (255 << 24) | (bb << 16) | (gg << 8) | rr;
@@ -258,6 +291,49 @@ export class CanvasRenderer {
     ctx.restore();
   }
 
+  static drawStoneBlock(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    size: number
+  ) {
+    ctx.save();
+    const pad = Math.max(1, size * 0.05);
+    const bx = x + pad;
+    const by = y + pad;
+    const bs = size - pad * 2;
+    const radius = Math.max(3, bs * 0.18);
+
+    // Stone base slate gray
+    this.drawRoundedRect(ctx, bx, by, bs, bs, radius);
+    ctx.fillStyle = '#475569';
+    ctx.fill();
+
+    // Stone outer border
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Top & left bevel highlight
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(bx + 2, by + 2, bs - 4, 3);
+    ctx.fillRect(bx + 2, by + 2, 3, bs - 4);
+
+    // Bottom & right dark bevel
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(bx + 2, by + bs - 5, bs - 4, 3);
+    ctx.fillRect(bx + bs - 5, by + 2, 3, bs - 4);
+
+    // Rock icon glyph
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = `bold ${Math.floor(bs * 0.44)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🪨', bx + bs / 2, by + bs / 2 + 1);
+
+    ctx.restore();
+  }
+
   static drawGrid(
     ctx: CanvasRenderingContext2D,
     width: number,
@@ -314,13 +390,15 @@ export class CanvasRenderer {
     themeId: ThemeId,
     fuseRemaining: number | null
   ) {
-    const { matrix, x, y, color, isBomb } = piece;
+    const { matrix, x, y, color, isBomb, isStone, type } = piece;
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c] !== 0) {
           if (isBomb) {
             const fuseSec = fuseRemaining !== null ? (fuseRemaining / 1000).toFixed(1) : null;
             this.draw1x1BombBlock(ctx, (x + c) * blockSize, (y + r) * blockSize, blockSize, fuseSec);
+          } else if (isStone || type === 'STONE') {
+            this.drawStoneBlock(ctx, (x + c) * blockSize, (y + r) * blockSize, blockSize);
           } else {
             this.drawThemedBlock(ctx, (x + c) * blockSize, (y + r) * blockSize, blockSize, color, themeId);
           }
@@ -331,14 +409,14 @@ export class CanvasRenderer {
 
   static drawGhostPiece(
     ctx: CanvasRenderingContext2D,
-    ghost: { x: number; y: number; matrix: number[][]; color: string; isBomb: boolean },
+    ghost: { x: number; y: number; matrix: number[][]; color: string; isBomb: boolean; isStone?: boolean },
     blockSize: number
   ) {
-    const { matrix, x, y, color, isBomb } = ghost;
+    const { matrix, x, y, color, isBomb, isStone } = ghost;
     ctx.save();
-    ctx.strokeStyle = isBomb ? '#ff2a2a' : color;
+    ctx.strokeStyle = isBomb ? '#ff2a2a' : isStone ? '#64748b' : color;
     ctx.lineWidth = 1.5;
-    ctx.fillStyle = isBomb ? 'rgba(255, 42, 42, 0.15)' : 'rgba(255, 255, 255, 0.06)';
+    ctx.fillStyle = isBomb ? 'rgba(255, 42, 42, 0.15)' : isStone ? 'rgba(100, 116, 139, 0.2)' : 'rgba(255, 255, 255, 0.06)';
 
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
@@ -388,6 +466,8 @@ export class CanvasRenderer {
         if (matrix[r][c] !== 0) {
           if (piece.isBomb) {
             this.draw1x1BombBlock(ctx, offsetX + c * cellSize, offsetY + r * cellSize, cellSize);
+          } else if (piece.isStone || piece.type === 'STONE') {
+            this.drawStoneBlock(ctx, offsetX + c * cellSize, offsetY + r * cellSize, cellSize);
           } else {
             this.drawThemedBlock(ctx, offsetX + c * cellSize, offsetY + r * cellSize, cellSize, piece.color, themeId);
           }
@@ -432,6 +512,8 @@ export class CanvasRenderer {
         if (matrix[r][c] !== 0) {
           if (def.isBomb) {
             this.draw1x1BombBlock(ctx, offsetX + c * cellSize, offsetY + r * cellSize, cellSize);
+          } else if (pieceType === 'STONE') {
+            this.drawStoneBlock(ctx, offsetX + c * cellSize, offsetY + r * cellSize, cellSize);
           } else {
             this.drawThemedBlock(ctx, offsetX + c * cellSize, offsetY + r * cellSize, cellSize, themeColor, themeId);
           }

@@ -127,7 +127,7 @@ export const StartModal: React.FC<StartModalProps> = ({
               </div>
               <div className="font-bold text-sm text-white" style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>Sand Physics</div>
               <div className="text-[11px] text-purple-200/80 leading-tight mt-0.5" style={{ fontSize: '11px', color: 'rgba(233, 213, 255, 0.8)', lineHeight: 1.25, marginTop: '2px' }}>
-                Balok meleleh jadi pasir! Hubungkan warna kiri ke kanan.
+                Pasir mengalir! Hubungkan warna (span 85%+). Mulai dari 3 warna tebal di Lv 1!
               </div>
               <div className="mt-2 text-[11px] font-semibold text-cyan-300" style={{ marginTop: '8px', fontSize: '11px', fontWeight: 600, color: '#67e8f9' }}>
                 🏆 Best: {bestScoreSand.toLocaleString()}
