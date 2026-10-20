@@ -9,8 +9,6 @@ const CACHE_NAME = 'rblock-adventure-v2.0.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './script.js',
   './manifest.webmanifest',
   './icon.svg'
 ];

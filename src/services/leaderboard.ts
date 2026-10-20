@@ -1,12 +1,38 @@
-import { LeaderboardEntry } from '../types/game';
+import { GameMode, LeaderboardEntry } from '../types/game';
 import { DEFAULT_CLASSIC_LEADERBOARD, DEFAULT_DAILY_LEADERBOARD } from '../constants/game';
 import { getTodayDateString } from './prng';
+
+export const BEST_SCORE_KEYS: Record<GameMode, string> = {
+  classic: 'rblock_best_score_classic',
+  sand: 'rblock_best_score_sand',
+};
+
+export function getBestScore(mode: GameMode): number {
+  // Fallback ke key lama 'rblock_best_score' untuk mode classic agar skor lama tidak hilang
+  if (mode === 'classic') {
+    const saved = localStorage.getItem(BEST_SCORE_KEYS.classic) ?? localStorage.getItem('rblock_best_score');
+    return saved ? parseInt(saved, 10) || 0 : 0;
+  }
+  const saved = localStorage.getItem(BEST_SCORE_KEYS.sand);
+  return saved ? parseInt(saved, 10) || 0 : 0;
+}
+
+export function saveBestScore(mode: GameMode, score: number): void {
+  const currentBest = getBestScore(mode);
+  if (score > currentBest) {
+    localStorage.setItem(BEST_SCORE_KEYS[mode], String(score));
+  }
+}
 
 export class LeaderboardService {
   static isOnline: boolean = false;
 
-  static getLocalScores(mode: 'classic' | 'daily' = 'classic'): LeaderboardEntry[] {
-    const key = mode === 'daily' ? `rblock_lb_daily_${getTodayDateString()}` : 'rblock_leaderboard_local';
+  static getLocalScores(mode: 'classic' | 'daily' | 'sand' = 'classic'): LeaderboardEntry[] {
+    const key = mode === 'daily'
+      ? `rblock_lb_daily_${getTodayDateString()}`
+      : mode === 'sand'
+      ? 'rblock_leaderboard_sand'
+      : 'rblock_leaderboard_local';
     try {
       const data = localStorage.getItem(key);
       if (data) {
@@ -17,8 +43,12 @@ export class LeaderboardService {
     return mode === 'daily' ? [...DEFAULT_DAILY_LEADERBOARD] : [...DEFAULT_CLASSIC_LEADERBOARD];
   }
 
-  static saveLocalScore(name: string, score: number, mode: 'classic' | 'daily' = 'classic'): LeaderboardEntry[] {
-    const key = mode === 'daily' ? `rblock_lb_daily_${getTodayDateString()}` : 'rblock_leaderboard_local';
+  static saveLocalScore(name: string, score: number, mode: 'classic' | 'daily' | 'sand' = 'classic'): LeaderboardEntry[] {
+    const key = mode === 'daily'
+      ? `rblock_lb_daily_${getTodayDateString()}`
+      : mode === 'sand'
+      ? 'rblock_leaderboard_sand'
+      : 'rblock_leaderboard_local';
     const list = this.getLocalScores(mode);
     list.push({ name, score, date: new Date().toISOString() });
     list.sort((a, b) => b.score - a.score);
@@ -29,7 +59,7 @@ export class LeaderboardService {
     return trimmed;
   }
 
-  static async fetchScores(mode: 'classic' | 'daily' = 'classic'): Promise<{ scores: LeaderboardEntry[]; source: string }> {
+  static async fetchScores(mode: 'classic' | 'daily' | 'sand' = 'classic'): Promise<{ scores: LeaderboardEntry[]; source: string }> {
     try {
       const response = await fetch(`/api/leaderboard?mode=${mode}&date=${getTodayDateString()}`, {
         method: 'GET',
@@ -57,7 +87,7 @@ export class LeaderboardService {
   static async submitScore(
     playerName: string,
     score: number,
-    mode: 'classic' | 'daily' = 'classic'
+    mode: 'classic' | 'daily' | 'sand' = 'classic'
   ): Promise<{ success: boolean; rank?: number | null; message: string }> {
     const sanitizedName = (playerName || 'Player').trim().slice(0, 12);
     try {

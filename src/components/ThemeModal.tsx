@@ -1,5 +1,6 @@
 import React from 'react';
 import { ThemeId } from '../types/game';
+import { haptics } from '../services/haptics';
 
 interface ThemeModalProps {
   isOpen: boolean;
@@ -29,7 +30,10 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({
             className={`theme-card ${currentTheme === 'candy' ? 'active' : ''}`}
             data-theme="candy"
             id="theme-card-candy"
-            onClick={() => onSelectTheme('candy')}
+            onClick={() => {
+              haptics.menuTap();
+              onSelectTheme('candy');
+            }}
           >
             <div className="theme-preview candy-preview">
               <span className="preview-dot p-pink"></span>
@@ -46,7 +50,10 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({
             className={`theme-card ${currentTheme === 'neon' ? 'active' : ''}`}
             data-theme="neon"
             id="theme-card-neon"
-            onClick={() => onSelectTheme('neon')}
+            onClick={() => {
+              haptics.menuTap();
+              onSelectTheme('neon');
+            }}
           >
             <div className="theme-preview neon-preview">
               <span className="preview-dot p-neon-blue"></span>
@@ -63,7 +70,10 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({
             className={`theme-card ${currentTheme === 'pastel' ? 'active' : ''}`}
             data-theme="pastel"
             id="theme-card-pastel"
-            onClick={() => onSelectTheme('pastel')}
+            onClick={() => {
+              haptics.menuTap();
+              onSelectTheme('pastel');
+            }}
           >
             <div className="theme-preview pastel-preview">
               <span className="preview-dot p-pastel-peach"></span>
@@ -80,7 +90,10 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({
             className={`theme-card ${currentTheme === 'retro' ? 'active' : ''}`}
             data-theme="retro"
             id="theme-card-retro"
-            onClick={() => onSelectTheme('retro')}
+            onClick={() => {
+              haptics.menuTap();
+              onSelectTheme('retro');
+            }}
           >
             <div className="theme-preview retro-preview">
               <span className="preview-dot p-retro-dark"></span>
@@ -95,7 +108,14 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({
         </div>
 
         <div className="modal-actions">
-          <button id="close-theme-btn" className="play-big-btn" onClick={onClose}>
+          <button
+            id="close-theme-btn"
+            className="play-big-btn"
+            onClick={() => {
+              haptics.menuTap();
+              onClose();
+            }}
+          >
             Simpan & Tutup ✨
           </button>
         </div>

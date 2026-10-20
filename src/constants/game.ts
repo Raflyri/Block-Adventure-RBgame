@@ -2,6 +2,8 @@ import { ThemeConfig, ThemeId, TetrominoDef, PuzzleStage, LeaderboardEntry } fro
 
 export const COLS = 10;
 export const ROWS = 20;
+export const BOARD_WIDTH = COLS;
+export const BOARD_HEIGHT = ROWS;
 
 export const CLASSIC_PIECE_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
 

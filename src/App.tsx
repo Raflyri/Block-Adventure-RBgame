@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
+  GameMode,
   GameModeType,
   GameStatusType,
   ThemeId,
   ActivePiece,
-  LeaderboardEntry
+  LeaderboardEntry,
+  SandGridState
 } from './types/game';
 import {
   COLS,
@@ -16,9 +18,20 @@ import {
   PUZZLE_STAGES
 } from './constants/game';
 import { sfx } from './services/audio';
+import { haptics } from './services/haptics';
 import { particles } from './services/particles';
 import { CanvasRenderer } from './services/renderer';
-import { LeaderboardService } from './services/leaderboard';
+import { LeaderboardService, getBestScore, saveBestScore } from './services/leaderboard';
+import {
+  createSandGrid,
+  clearSandGrid,
+  checkSandCollision,
+  imprintPieceToSand,
+  detonateSandBomb,
+  stepSandPhysics,
+  findAndClearSandBridges,
+  isSandToppedOut
+} from './services/sandEngine';
 import { getTodayDateString, getDateSeed, createMulberry32 } from './services/prng';
 
 import { Header } from './components/Header';
@@ -31,6 +44,7 @@ import { PauseModal } from './components/PauseModal';
 import { GameOverModal } from './components/GameOverModal';
 import { ThemeModal } from './components/ThemeModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
+import { SettingsModal, SENSITIVITY_LABELS } from './components/SettingsModal';
 import { SkyBubbles } from './components/SkyBubbles';
 
 export const App: React.FC = () => {
@@ -44,8 +58,35 @@ export const App: React.FC = () => {
     }
   });
 
+  // Dual Game Modes State & Sand Grid Ref
+  const [gameMode, setGameMode] = useState<GameMode>(() => {
+    try {
+      return (localStorage.getItem('rblock_game_mode') as GameMode) || 'classic';
+    } catch {
+      return 'classic';
+    }
+  });
+  const gameModeRef = useRef<GameMode>(gameMode);
+  useEffect(() => {
+    gameModeRef.current = gameMode;
+  }, [gameMode]);
+
+  const sandGridRef = useRef<SandGridState>(createSandGrid());
+  const sandTickParityRef = useRef<number>(0);
+  const sandCheckCooldownRef = useRef<number>(0);
+
+  const [bestScoreClassic, setBestScoreClassic] = useState<number>(() => getBestScore('classic'));
+  const [bestScoreSand, setBestScoreSand] = useState<number>(() => getBestScore('sand'));
+
   // Mode & Stage State
-  const [mode, setMode] = useState<GameModeType>('classic');
+  const [mode, setMode] = useState<GameModeType>(() => {
+    try {
+      const savedMode = (localStorage.getItem('rblock_game_mode') as GameMode) || 'classic';
+      return savedMode === 'sand' ? 'sand' : 'classic';
+    } catch {
+      return 'classic';
+    }
+  });
   const [selectedPuzzleStage, setSelectedPuzzleStage] = useState<number>(1);
   const [unlockedPuzzleStage, setUnlockedPuzzleStage] = useState<number>(() => {
     try {
@@ -67,10 +108,8 @@ export const App: React.FC = () => {
   const [score, setScore] = useState<number>(0);
   const [highScore, setHighScore] = useState<number>(() => {
     try {
-      const saved =
-        localStorage.getItem('rblock_adventure_highscore') ||
-        localStorage.getItem('webtetris_high_score');
-      return saved ? parseInt(saved, 10) : 0;
+      const currentMode = (localStorage.getItem('rblock_game_mode') as GameMode) || 'classic';
+      return getBestScore(currentMode);
     } catch {
       return 0;
     }
@@ -105,6 +144,109 @@ export const App: React.FC = () => {
   const [customBadge, setCustomBadge] = useState<string | null>(null);
   const [isThemeOpen, setIsThemeOpen] = useState<boolean>(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+
+  // Settings: Swipe sensitivity (1 to 5, default 3) & Screen Shake
+  const [swipeSensitivity, setSwipeSensitivity] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('rblock_swipe_sensitivity');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (parsed >= 1 && parsed <= 5) return parsed;
+      }
+    } catch {}
+    return 3;
+  });
+  const swipeSensitivityRef = useRef<number>(3);
+  useEffect(() => {
+    swipeSensitivityRef.current = swipeSensitivity;
+    try {
+      localStorage.setItem('rblock_swipe_sensitivity', swipeSensitivity.toString());
+    } catch {}
+  }, [swipeSensitivity]);
+
+  const [screenShakeEnabled, setScreenShakeEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('rblock_screen_shake');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true;
+  });
+  const screenShakeEnabledRef = useRef<boolean>(true);
+  useEffect(() => {
+    screenShakeEnabledRef.current = screenShakeEnabled;
+    try {
+      localStorage.setItem('rblock_screen_shake', screenShakeEnabled ? 'true' : 'false');
+    } catch {}
+  }, [screenShakeEnabled]);
+
+  // Game Speed Multiplier (1.0 to 2.5, default 1.0)
+  const [gameSpeedMultiplier, setGameSpeedMultiplier] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('rblock_game_speed_multiplier');
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= 1.0 && parsed <= 3.0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return 1.0;
+  });
+  const gameSpeedMultiplierRef = useRef<number>(1.0);
+  useEffect(() => {
+    gameSpeedMultiplierRef.current = gameSpeedMultiplier;
+    try {
+      localStorage.setItem('rblock_game_speed_multiplier', gameSpeedMultiplier.toString());
+    } catch {}
+  }, [gameSpeedMultiplier]);
+
+  const handleGameSpeedChange = useCallback((newSpeed: number) => {
+    const clamped = Math.max(1.0, Math.min(2.5, Math.round(newSpeed * 100) / 100));
+    setGameSpeedMultiplier(clamped);
+  }, []);
+
+  // Sound Effects (SFX) Volume (0 to 100)
+  const [sfxVolume, setSfxVolume] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('rblock_sfx_volume');
+      if (saved !== null) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+          return Math.round(parsed * 100);
+        }
+      }
+    } catch {}
+    return Math.round(sfx.volume * 100);
+  });
+
+  const handleVolumeChange = useCallback((newVolume: number) => {
+    const clamped = Math.max(0, Math.min(100, newVolume));
+    setSfxVolume(clamped);
+    sfx.setVolume(clamped / 100);
+  }, []);
+
+  const handleTestSfx = useCallback(() => {
+    sfx.playVolumePreview();
+  }, []);
+
+  // Haptic Feedback (Vibration API)
+  const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('rblock_haptics_enabled');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true;
+  });
+
+  const handleToggleHaptics = useCallback((val: boolean) => {
+    setHapticsEnabled(val);
+    haptics.setEnabled(val);
+  }, []);
+
+  const handleTestHaptics = useCallback(() => {
+    haptics.test();
+  }, []);
 
   // Floating Banner
   const [bannerInfo, setBannerInfo] = useState<{ text: string; isBomb: boolean; visible: boolean }>({
@@ -227,6 +369,7 @@ export const App: React.FC = () => {
 
   // Screen Shake Trigger
   const triggerScreenShake = useCallback((isHeavy: boolean = false) => {
+    if (!screenShakeEnabledRef.current) return;
     shakeDurationRef.current = isHeavy ? 400 : 150;
     shakeIntensityRef.current = isHeavy ? 8 : 3.5;
   }, []);
@@ -346,14 +489,18 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Collision Checking
+  // Collision Checking (Classic & Sand)
   const checkCollision = useCallback(
     (piece: ActivePiece, offsetX: number = 0, offsetY: number = 0, testMatrix: number[][] | null = null): boolean => {
       const matrix = testMatrix || piece.matrix;
       const targetX = piece.x + offsetX;
       const targetY = piece.y + offsetY;
-      const board = boardRef.current;
 
+      if (gameModeRef.current === 'sand') {
+        return checkSandCollision(sandGridRef.current, matrix, targetX, targetY);
+      }
+
+      const board = boardRef.current;
       for (let r = 0; r < matrix.length; r++) {
         for (let c = 0; c < matrix[r].length; c++) {
           if (matrix[r][c] !== 0) {
@@ -377,6 +524,7 @@ export const App: React.FC = () => {
     gameStatusRef.current = 'GAME_OVER';
     setGameStatus('GAME_OVER');
     sfx.playVictory();
+    haptics.victory();
 
     if (canvasRef.current) {
       particles.spawnMegaRBlockBurst(canvasRef.current.width, canvasRef.current.height);
@@ -410,6 +558,7 @@ export const App: React.FC = () => {
     gameStatusRef.current = 'GAME_OVER';
     setGameStatus('GAME_OVER');
     sfx.playGameOver();
+    haptics.gameOver();
     setIsVictory(false);
     setCustomTitle(title || null);
     setCustomBadge(badge || null);
@@ -436,6 +585,7 @@ export const App: React.FC = () => {
   const detonateBomb = useCallback(
     (centerX: number, centerY: number) => {
       sfx.playExplosion();
+      haptics.bombExplosion();
       triggerScreenShake(true);
 
       const px = centerX * blockSizeRef.current + blockSizeRef.current / 2;
@@ -485,6 +635,7 @@ export const App: React.FC = () => {
       const cleared = clearLines();
       if (cleared > 0) {
         sfx.playLineClear(cleared === 4);
+        haptics.lineClear(cleared);
         const combo = comboStreakRef.current + 1;
         comboStreakRef.current = combo;
         setComboStreak(combo);
@@ -580,6 +731,63 @@ export const App: React.FC = () => {
     const cur = currentPieceRef.current;
     if (!cur) return;
 
+    if (gameModeRef.current === 'sand') {
+      if (cur.isBomb) {
+        const destroyed = detonateSandBomb(sandGridRef.current, cur.x, cur.y, 2.2);
+        sfx.playBombExplosion();
+        haptics.bombExplosion();
+        triggerScreenShake(true);
+        if (canvasRef.current) {
+          const bs = blockSizeRef.current;
+          particles.spawnBombExplosion(
+            (cur.x + 0.5) * bs,
+            (cur.y + 0.5) * bs
+          );
+        }
+        if (destroyed > 0) {
+          const earned = Math.floor(destroyed * 2);
+          const total = scoreRef.current + earned;
+          scoreRef.current = total;
+          setScore(total);
+          saveBestScore('sand', total);
+          setBestScoreSand((prev) => Math.max(prev, total));
+          setHighScore((prev) => Math.max(prev, total));
+        }
+      } else {
+        const toppedOut = imprintPieceToSand(
+          sandGridRef.current,
+          cur.matrix,
+          cur.x,
+          cur.y,
+          cur.type
+        );
+        sfx.playDrop();
+        haptics.pieceLock();
+
+        if (toppedOut || isSandToppedOut(sandGridRef.current)) {
+          handleGameOver('Tumpukan Pasir Mencapai Puncak! ⏳', 'GAME OVER');
+          return;
+        }
+      }
+
+      // Next Piece
+      let nxt = nextPieceRef.current;
+      const generated = createPieceFromType(getNextPieceType());
+      nextPieceRef.current = generated;
+      setNextPiece(generated);
+
+      if (nxt && checkCollision(nxt, 0, 0)) {
+        handleGameOver('Papan Penuh! Balok Terjepit.', 'GAME OVER');
+        return;
+      }
+
+      currentPieceRef.current = nxt;
+      setCurrentPiece(nxt);
+      canHoldRef.current = true;
+      initBombFuse(nxt);
+      return;
+    }
+
     if (cur.isBomb) {
       detonateBomb(cur.x, cur.y);
       return;
@@ -607,6 +815,7 @@ export const App: React.FC = () => {
     const cleared = clearLines();
     if (cleared > 0) {
       sfx.playLineClear(cleared === 4);
+      haptics.lineClear(cleared);
       const combo = comboStreakRef.current + 1;
       comboStreakRef.current = combo;
       setComboStreak(combo);
@@ -637,6 +846,7 @@ export const App: React.FC = () => {
         triggerScreenShake(true);
       }
     } else {
+      haptics.pieceLock();
       comboStreakRef.current = 0;
       setComboStreak(0);
     }
@@ -706,6 +916,7 @@ export const App: React.FC = () => {
       piece.x--;
       setCurrentPiece({ ...piece });
       sfx.playMove();
+      haptics.move();
     }
   }, [checkCollision]);
 
@@ -716,6 +927,7 @@ export const App: React.FC = () => {
       piece.x++;
       setCurrentPiece({ ...piece });
       sfx.playMove();
+      haptics.move();
     }
   }, [checkCollision]);
 
@@ -728,6 +940,7 @@ export const App: React.FC = () => {
       const newScore = scoreRef.current + 1;
       scoreRef.current = newScore;
       setScore(newScore);
+      haptics.softDrop();
     } else {
       lockCurrentPiece();
     }
@@ -745,6 +958,7 @@ export const App: React.FC = () => {
     scoreRef.current = newScore;
     setScore(newScore);
     setCurrentPiece({ ...piece });
+    haptics.hardDrop();
     lockCurrentPiece();
     triggerScreenShake(false);
   }, [checkCollision, lockCurrentPiece, triggerScreenShake]);
@@ -764,6 +978,7 @@ export const App: React.FC = () => {
         piece.x += kick;
         setCurrentPiece({ ...piece });
         sfx.playRotate();
+        haptics.rotate();
         return;
       }
     }
@@ -774,6 +989,7 @@ export const App: React.FC = () => {
       return;
 
     sfx.playChime(620, 0.08, 'sine', 0.1);
+    haptics.hold();
     const curType = currentPieceRef.current.type;
 
     if (!holdPieceRef.current) {
@@ -807,12 +1023,16 @@ export const App: React.FC = () => {
   const startGame = useCallback(
     (modeToStart: GameModeType = mode, stageToStart: number = selectedPuzzleStage) => {
       sfx.init();
+      haptics.menuTap();
       modeRef.current = modeToStart;
       setMode(modeToStart);
 
-      // Reset Board
+      // Reset Board & Sand Grid
       const newBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
       boardRef.current = newBoard;
+      clearSandGrid(sandGridRef.current);
+      sandTickParityRef.current = 0;
+      sandCheckCooldownRef.current = 0;
 
       bagRef.current = [];
       piecesSinceLastBombRef.current = 0;
@@ -882,8 +1102,50 @@ export const App: React.FC = () => {
     [mode, selectedPuzzleStage, createPieceFromType, getNextPieceType, initBombFuse]
   );
 
+  const getThemeColorIdMap = useCallback((theme: ThemeId): Record<number, string> => {
+    const colors = THEMES[theme]?.colors || THEMES.candy.colors;
+    return {
+      1: colors.I || '#00e5ff',
+      2: colors.J || '#4361ee',
+      3: colors.L || '#ff7b00',
+      4: colors.O || '#ffbe0b',
+      5: colors.S || '#06d6a0',
+      6: colors.T || '#a370f7',
+      7: colors.Z || '#ff4d6d',
+      8: colors.BOMB || '#ff2a2a'
+    };
+  }, []);
+
+  const handleSelectGameMode = useCallback((newMode: GameMode) => {
+    haptics.menuTap();
+    setGameMode(newMode);
+    gameModeRef.current = newMode;
+    try {
+      localStorage.setItem('rblock_game_mode', newMode);
+    } catch {}
+    const best = getBestScore(newMode);
+    setHighScore(best);
+    if (newMode === 'sand') {
+      setMode('sand');
+      modeRef.current = 'sand';
+    } else {
+      setMode('classic');
+      modeRef.current = 'classic';
+    }
+  }, []);
+
+  const handleToggleGameMode = useCallback(() => {
+    haptics.menuTap();
+    const nextMode: GameMode = gameMode === 'classic' ? 'sand' : 'classic';
+    handleSelectGameMode(nextMode);
+    if (gameStatusRef.current === 'PLAYING') {
+      startGame(nextMode === 'sand' ? 'sand' : 'classic', selectedPuzzleStage);
+    }
+  }, [gameMode, handleSelectGameMode, selectedPuzzleStage, startGame]);
+
   const pauseGame = useCallback(() => {
     if (gameStatusRef.current === 'PLAYING') {
+      haptics.menuTap();
       gameStatusRef.current = 'PAUSED';
       setGameStatus('PAUSED');
       setIsPauseOpen(true);
@@ -892,6 +1154,7 @@ export const App: React.FC = () => {
 
   const resumeGame = useCallback(() => {
     if (gameStatusRef.current === 'PAUSED') {
+      haptics.menuTap();
       gameStatusRef.current = 'PLAYING';
       setGameStatus('PLAYING');
       setIsPauseOpen(false);
@@ -905,10 +1168,17 @@ export const App: React.FC = () => {
   }, [pauseGame, resumeGame]);
 
   const toggleAudio = useCallback(() => {
+    haptics.menuTap();
     sfx.init();
     const muted = sfx.toggleMute();
     setIsMuted(muted);
   }, []);
+
+  const openSettings = useCallback(() => {
+    haptics.menuTap();
+    if (gameStatusRef.current === 'PLAYING') pauseGame();
+    setIsSettingsOpen(true);
+  }, [pauseGame]);
 
   // Keyboard controls
   useEffect(() => {
@@ -964,12 +1234,15 @@ export const App: React.FC = () => {
           if (gameStatusRef.current === 'PLAYING') pauseGame();
           setIsThemeOpen(true);
           break;
+        case 'KeyO':
+          openSettings();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [moveLeft, moveRight, rotate, softDrop, hardDrop, hold, togglePause, toggleAudio, pauseGame]);
+  }, [moveLeft, moveRight, rotate, softDrop, hardDrop, hold, togglePause, toggleAudio, pauseGame, openSettings]);
 
   // Canvas Touch gestures
   const touchTrackRef = useRef({
@@ -1000,7 +1273,11 @@ export const App: React.FC = () => {
     const touch = e.touches[0];
     const dx = touch.clientX - touchTrackRef.current.lastX;
     const dy = touch.clientY - touchTrackRef.current.lastY;
-    const threshold = blockSizeRef.current * 0.85;
+
+    // Dynamically computed threshold based on user's Swipe Sensitivity preference
+    const sensitivityMultiplier =
+      SENSITIVITY_LABELS[swipeSensitivityRef.current]?.multiplier || 0.85;
+    const threshold = blockSizeRef.current * sensitivityMultiplier;
 
     if (Math.abs(dx) >= threshold) {
       if (dx > 0) moveRight();
@@ -1008,7 +1285,8 @@ export const App: React.FC = () => {
       touchTrackRef.current.lastX = touch.clientX;
     }
 
-    if (dy >= threshold) {
+    const verticalThreshold = blockSizeRef.current * Math.min(1.0, sensitivityMultiplier * 1.1);
+    if (dy >= verticalThreshold) {
       softDrop();
       dropCounterRef.current = 0;
       touchTrackRef.current.lastY = touch.clientY;
@@ -1107,10 +1385,71 @@ export const App: React.FC = () => {
 
         // Automatic Drop
         dropCounterRef.current += delta;
-        const dropInterval = Math.max(80, 1000 - (levelRef.current - 1) * 90);
+        const baseDropInterval = Math.max(80, 1000 - (levelRef.current - 1) * 90);
+        const currentSpeed = gameSpeedMultiplierRef.current || 1.0;
+        const dropInterval = Math.max(40, baseDropInterval / currentSpeed);
         if (dropCounterRef.current >= dropInterval) {
           softDrop();
           dropCounterRef.current = 0;
+        }
+
+        // Sand Physics Simulation & Bridge Clears
+        if (gameModeRef.current === 'sand') {
+          let anyMoved = false;
+          for (let step = 0; step < 2; step++) {
+            sandTickParityRef.current = (sandTickParityRef.current + 1) & 1;
+            if (stepSandPhysics(sandGridRef.current, sandTickParityRef.current)) {
+              anyMoved = true;
+            }
+          }
+
+          sandCheckCooldownRef.current++;
+          if (sandCheckCooldownRef.current >= 4 || !anyMoved) {
+            sandCheckCooldownRef.current = 0;
+            const paletteMap = getThemeColorIdMap(themeId);
+            const clearedClusters = findAndClearSandBridges(sandGridRef.current, paletteMap);
+
+            if (clearedClusters.length > 0) {
+              let totalGrainsCleared = 0;
+              const bs = blockSizeRef.current;
+
+              clearedClusters.forEach((cluster) => {
+                totalGrainsCleared += cluster.indices.length;
+
+                for (let i = 0; i < cluster.indices.length; i += 8) {
+                  const idx = cluster.indices[i];
+                  const gx = (idx % sandGridRef.current.width) / sandGridRef.current.scale;
+                  const gy = Math.floor(idx / sandGridRef.current.width) / sandGridRef.current.scale;
+                  particles.spawnLineClearSparkle((gx + 0.5) * bs, (gy + 0.5) * bs, cluster.colorHex);
+                }
+              });
+
+              const bridgesCount = clearedClusters.length;
+              const basePoints = bridgesCount * 150 * levelRef.current;
+              const grainBonus = Math.floor(totalGrainsCleared * 0.5) * levelRef.current;
+              const totalEarned = basePoints + grainBonus;
+
+              const nextScore = scoreRef.current + totalEarned;
+              scoreRef.current = nextScore;
+              setScore(nextScore);
+              saveBestScore('sand', nextScore);
+              setBestScoreSand((prev) => Math.max(prev, nextScore));
+              setHighScore((prev) => Math.max(prev, nextScore));
+
+              const nextLines = linesRef.current + bridgesCount;
+              linesRef.current = nextLines;
+              setLines(nextLines);
+
+              const nextLevel = Math.floor(nextLines / 10) + 1;
+              levelRef.current = nextLevel;
+              setLevel(nextLevel);
+
+              sfx.playLineClear(bridgesCount >= 2);
+              haptics.sandBridgeClear(bridgesCount);
+              triggerScreenShake(bridgesCount >= 2);
+              triggerBanner(bridgesCount, 1);
+            }
+          }
         }
       }
 
@@ -1163,7 +1502,12 @@ export const App: React.FC = () => {
 
           ctx.clearRect(0, 0, w, h);
           CanvasRenderer.drawGrid(ctx, w, h, bs, themeId);
-          CanvasRenderer.drawBoard(ctx, boardRef.current, bs, themeId);
+          if (gameModeRef.current === 'sand') {
+            const paletteMap = getThemeColorIdMap(themeId);
+            CanvasRenderer.renderSandGrid(ctx, sandGridRef.current, w, h, paletteMap);
+          } else {
+            CanvasRenderer.drawBoard(ctx, boardRef.current, bs, themeId);
+          }
 
           if (gameStatusRef.current === 'PLAYING' || gameStatusRef.current === 'PAUSED') {
             const piece = currentPieceRef.current;
@@ -1220,7 +1564,7 @@ export const App: React.FC = () => {
   ]);
 
   const handleSubmitScore = async (name: string) => {
-    const modeToSubmit = mode === 'daily' ? 'daily' : 'classic';
+    const modeToSubmit = mode === 'daily' ? 'daily' : mode === 'sand' ? 'sand' : 'classic';
     return await LeaderboardService.submitScore(name, score, modeToSubmit);
   };
 
@@ -1246,8 +1590,11 @@ export const App: React.FC = () => {
             if (gameStatus === 'PLAYING') pauseGame();
             setIsLeaderboardOpen(true);
           }}
+          onOpenSettings={openSettings}
           onToggleAudio={toggleAudio}
           onTogglePause={togglePause}
+          gameMode={gameMode}
+          onToggleGameMode={handleToggleGameMode}
         />
 
         <main className="game-arena" id="game-arena">
@@ -1263,6 +1610,7 @@ export const App: React.FC = () => {
             dailyTargetLines={dailyTargetLines}
             holdPiece={holdPiece}
             themeId={themeId}
+            gameSpeedMultiplier={gameSpeedMultiplier}
           />
 
           <GameBoard
@@ -1313,12 +1661,18 @@ export const App: React.FC = () => {
         onSelectMode={(m) => setMode(m)}
         onSelectStage={(stg) => setSelectedPuzzleStage(stg)}
         onStartGame={() => startGame(mode, selectedPuzzleStage)}
+        onOpenSettings={openSettings}
+        gameMode={gameMode}
+        onSelectGameMode={handleSelectGameMode}
+        bestScoreClassic={bestScoreClassic}
+        bestScoreSand={bestScoreSand}
       />
 
       <PauseModal
         isOpen={isPauseOpen}
         onResume={resumeGame}
         onRestart={() => startGame(mode, selectedPuzzleStage)}
+        onOpenSettings={openSettings}
         onMainMenu={() => {
           setIsPauseOpen(false);
           setIsStartOpen(true);
@@ -1372,6 +1726,26 @@ export const App: React.FC = () => {
       <LeaderboardModal
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        swipeSensitivity={swipeSensitivity}
+        onSwipeSensitivityChange={(val) => setSwipeSensitivity(val)}
+        sfxVolume={sfxVolume}
+        onVolumeChange={handleVolumeChange}
+        onTestSfx={handleTestSfx}
+        gameSpeedMultiplier={gameSpeedMultiplier}
+        onGameSpeedChange={handleGameSpeedChange}
+        screenShakeEnabled={screenShakeEnabled}
+        onToggleScreenShake={(val) => setScreenShakeEnabled(val)}
+        hapticsEnabled={hapticsEnabled}
+        onToggleHaptics={handleToggleHaptics}
+        isHapticsSupported={haptics.isSupported()}
+        onTestHaptics={handleTestHaptics}
+        isMuted={isMuted}
+        onToggleMute={toggleAudio}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </>
   );

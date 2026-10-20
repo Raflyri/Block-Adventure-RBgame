@@ -36,13 +36,21 @@ const dailyScores: LeaderboardEntry[] = [
   { name: "PuzzleAce", score: 2900, mode: "daily", date: new Date().toISOString() }
 ];
 
+// Default starter champions for Sand Physics Mode
+const sandScores: LeaderboardEntry[] = [
+  { name: "SandWiz", score: 8900, mode: "sand", date: "2026-09-02T12:00:00.000Z" },
+  { name: "DuneRacer", score: 6750, mode: "sand", date: "2026-09-03T15:20:00.000Z" },
+  { name: "GrainStorm", score: 5400, mode: "sand", date: "2026-09-04T09:10:00.000Z" },
+  { name: "DesertFox", score: 4200, mode: "sand", date: "2026-09-04T16:30:00.000Z" }
+];
+
 // GET /api/leaderboard
 app.get('/api/leaderboard', (req, res) => {
-  const mode = req.query.mode === 'daily' ? 'daily' : 'classic';
+  const mode = req.query.mode === 'daily' ? 'daily' : req.query.mode === 'sand' ? 'sand' : 'classic';
   const todayStr = new Date().toISOString().slice(0, 10);
   const dateQuery = (req.query.date as string) || todayStr;
 
-  let pool = mode === 'daily' ? dailyScores : classicScores;
+  let pool = mode === 'daily' ? dailyScores : mode === 'sand' ? sandScores : classicScores;
   let filtered = pool;
 
   if (mode === 'daily') {
@@ -67,7 +75,7 @@ app.get('/api/leaderboard', (req, res) => {
 app.post('/api/leaderboard', (req, res) => {
   try {
     const { name: rawName, score: rawScore, mode: rawMode } = req.body;
-    const mode = rawMode === 'daily' ? 'daily' : 'classic';
+    const mode = rawMode === 'daily' ? 'daily' : rawMode === 'sand' ? 'sand' : 'classic';
     const score = parseInt(rawScore, 10);
     const todayStr = new Date().toISOString().slice(0, 10);
     const nowIso = new Date().toISOString();
@@ -90,11 +98,13 @@ app.post('/api/leaderboard', (req, res) => {
 
     if (mode === 'daily') {
       dailyScores.push(newEntry);
+    } else if (mode === 'sand') {
+      sandScores.push(newEntry);
     } else {
       classicScores.push(newEntry);
     }
 
-    const pool = mode === 'daily' ? dailyScores : classicScores;
+    const pool = mode === 'daily' ? dailyScores : mode === 'sand' ? sandScores : classicScores;
     let relevant = pool;
     if (mode === 'daily') {
       relevant = pool.filter(e => e.date.startsWith(todayStr));

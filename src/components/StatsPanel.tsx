@@ -14,6 +14,7 @@ interface StatsPanelProps {
   dailyTargetLines: number;
   holdPiece: string | null;
   themeId: ThemeId;
+  gameSpeedMultiplier?: number;
 }
 
 export const StatsPanel: React.FC<StatsPanelProps> = ({
@@ -27,7 +28,8 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
   puzzleQueueCount,
   dailyTargetLines,
   holdPiece,
-  themeId
+  themeId,
+  gameSpeedMultiplier = 1.0
 }) => {
   const mobileHoldRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -51,7 +53,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
     4: 'Speedy! 🌟',
     5: 'Hyper! 💫'
   };
-  const speedText = speedLabels[level] || 'Super Sonic! 🛸';
+  const baseSpeed = speedLabels[level] || 'Super Sonic! 🛸';
+  const speedText =
+    gameSpeedMultiplier > 1.0
+      ? `${baseSpeed} (${gameSpeedMultiplier.toFixed(gameSpeedMultiplier % 1 === 0 ? 1 : 2)}×)`
+      : baseSpeed;
   const progressPercent = ((score % 1000) / 1000) * 100;
 
   return (
@@ -78,6 +84,19 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
             {lines} / {dailyTargetLines}
           </span>
           <span id="objective-sub" className="speed-tag">Bersihkan 15 Baris!</span>
+        </div>
+      )}
+
+      {mode === 'sand' && (
+        <div id="mode-objective-card" className="candy-card stat-card objective-card" style={{ borderColor: 'rgba(34, 211, 238, 0.4)', background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(15, 23, 42, 0.6) 100%)' }}>
+          <div className="card-icon-row">
+            <span className="stat-emoji" id="objective-emoji">⏳</span>
+            <span className="card-label" id="objective-title" style={{ color: '#67e8f9' }}>SAND PHYS</span>
+          </div>
+          <span id="objective-value" className="card-value highlight-text" style={{ color: '#22d3ee' }}>
+            60×120
+          </span>
+          <span id="objective-sub" className="speed-tag" style={{ color: '#a5f3fc' }}>Hubungkan Kiri-Kanan!</span>
         </div>
       )}
 

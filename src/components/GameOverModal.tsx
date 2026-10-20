@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GameModeType } from '../types/game';
 import { PUZZLE_STAGES } from '../constants/game';
+import { haptics } from '../services/haptics';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -149,7 +150,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             className="play-big-btn next-stage-btn wobble-hover"
             style={{ marginBottom: '8px' }}
             disabled={!hasNextStage}
-            onClick={onNextStage}
+            onClick={() => {
+              haptics.menuTap();
+              onNextStage();
+            }}
           >
             {hasNextStage ? `STAGE ${puzzleStage + 1} ⏩` : `SEMUA STAGE SELESAI! 👑`}
           </button>
@@ -160,7 +164,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             id="choose-stage-btn"
             className="candy-btn-secondary"
             style={{ marginBottom: '8px', width: '100%' }}
-            onClick={onChooseStage}
+            onClick={() => {
+              haptics.menuTap();
+              onChooseStage();
+            }}
           >
             🧩 Pilih Stage Lain
           </button>
@@ -171,13 +178,23 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             id="view-leaderboard-from-gameover-btn"
             className="candy-btn-secondary"
             style={{ marginBottom: '8px', width: '100%' }}
-            onClick={onViewLeaderboard}
+            onClick={() => {
+              haptics.menuTap();
+              onViewLeaderboard();
+            }}
           >
             🏆 Lihat Rekor Dunia
           </button>
         )}
 
-        <button id="play-again-btn" className="play-big-btn wobble-hover" onClick={onPlayAgain}>
+        <button
+          id="play-again-btn"
+          className="play-big-btn wobble-hover"
+          onClick={() => {
+            haptics.menuTap();
+            onPlayAgain();
+          }}
+        >
           {isPuzzle ? (isVictory ? 'ULANGI STAGE 🔄' : 'COBA LAGI 🔄') : 'PLAY AGAIN! 🎈'}
         </button>
 
@@ -185,7 +202,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           id="menu-from-gameover-btn"
           className="candy-btn-secondary"
           style={{ marginTop: '8px', width: '100%' }}
-          onClick={onMainMenu}
+          onClick={() => {
+            haptics.menuTap();
+            onMainMenu();
+          }}
         >
           MAIN MENU 🏠
         </button>

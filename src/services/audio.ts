@@ -2,6 +2,19 @@ class PlayfulAudio {
   private ctx: AudioContext | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   public muted: boolean = false;
+  public volume: number = 0.8;
+
+  constructor() {
+    try {
+      const savedVolume = localStorage.getItem('rblock_sfx_volume');
+      if (savedVolume !== null) {
+        const parsed = parseFloat(savedVolume);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+          this.volume = parsed;
+        }
+      }
+    } catch (e) {}
+  }
 
   init() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -31,8 +44,15 @@ class PlayfulAudio {
     return this.muted;
   }
 
+  setVolume(newVolume: number) {
+    this.volume = Math.max(0, Math.min(1, newVolume));
+    try {
+      localStorage.setItem('rblock_sfx_volume', this.volume.toString());
+    } catch (e) {}
+  }
+
   playChime(freq: number, duration: number = 0.12, type: OscillatorType = 'sine', volume: number = 0.12) {
-    if (this.muted || !this.ctx) return;
+    if (this.muted || !this.ctx || this.volume <= 0) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -40,7 +60,8 @@ class PlayfulAudio {
       osc.type = type;
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
 
-      gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+      const effectiveVolume = volume * this.volume;
+      gain.gain.setValueAtTime(effectiveVolume, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
 
       osc.connect(gain);
@@ -49,6 +70,15 @@ class PlayfulAudio {
       osc.start();
       osc.stop(this.ctx.currentTime + duration);
     } catch (e) {}
+  }
+
+  playVolumePreview() {
+    this.init();
+    if (this.muted || this.volume <= 0) return;
+    this.playChime(523, 0.08, 'sine', 0.12);
+    setTimeout(() => {
+      this.playChime(659, 0.12, 'sine', 0.14);
+    }, 90);
   }
 
   playMove() {
@@ -63,8 +93,16 @@ class PlayfulAudio {
     this.playChime(220, 0.1, 'triangle', 0.1);
   }
 
+  playSoftLock() {
+    this.playDrop();
+  }
+
+  playBombExplosion() {
+    this.playExplosion();
+  }
+
   playLineClear(isMega: boolean = false) {
-    if (this.muted || !this.ctx) return;
+    if (this.muted || !this.ctx || this.volume <= 0) return;
     const notes = isMega ? [440, 554, 659, 880] : [523, 659, 784];
     notes.forEach((freq, idx) => {
       setTimeout(() => {
@@ -74,7 +112,7 @@ class PlayfulAudio {
   }
 
   playExplosion() {
-    if (this.muted || !this.ctx || !this.noiseBuffer) return;
+    if (this.muted || !this.ctx || !this.noiseBuffer || this.volume <= 0) return;
     try {
       const noise = this.ctx.createBufferSource();
       noise.buffer = this.noiseBuffer;
@@ -85,7 +123,7 @@ class PlayfulAudio {
       filter.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.6);
 
       const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.35 * this.volume, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
 
       noise.connect(filter);
@@ -101,7 +139,7 @@ class PlayfulAudio {
       subOsc.frequency.setValueAtTime(140, this.ctx.currentTime);
       subOsc.frequency.exponentialRampToValueAtTime(35, this.ctx.currentTime + 0.5);
 
-      subGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+      subGain.gain.setValueAtTime(0.4 * this.volume, this.ctx.currentTime);
       subGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
 
       subOsc.connect(subGain);
@@ -113,13 +151,13 @@ class PlayfulAudio {
   }
 
   playFuseTick(urgent: boolean = false) {
-    if (this.muted || !this.ctx) return;
+    if (this.muted || !this.ctx || this.volume <= 0) return;
     const freq = urgent ? 880 : 540;
     this.playChime(freq, 0.05, 'square', urgent ? 0.09 : 0.04);
   }
 
   playGameOver() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted || !this.ctx || this.volume <= 0) return;
     const notes = [392, 349, 311, 261];
     notes.forEach((freq, idx) => {
       setTimeout(() => {
@@ -129,7 +167,7 @@ class PlayfulAudio {
   }
 
   playVictory() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted || !this.ctx || this.volume <= 0) return;
     const notes = [523, 659, 784, 1046];
     notes.forEach((freq, idx) => {
       setTimeout(() => {

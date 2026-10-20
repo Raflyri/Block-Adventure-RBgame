@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LeaderboardEntry } from '../types/game';
 import { LeaderboardService } from '../services/leaderboard';
 import { getTodayDateString } from '../services/prng';
+import { haptics } from '../services/haptics';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -9,12 +10,12 @@ interface LeaderboardModalProps {
 }
 
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'classic' | 'daily'>('classic');
+  const [activeTab, setActiveTab] = useState<'classic' | 'daily' | 'sand'>('classic');
   const [scores, setScores] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [source, setSource] = useState<string>('backend_api');
 
-  const loadScores = async (mode: 'classic' | 'daily') => {
+  const loadScores = async (mode: 'classic' | 'daily' | 'sand') => {
     setIsLoading(true);
     const result = await LeaderboardService.fetchScores(mode);
     setScores(result.scores);
@@ -46,15 +47,32 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
             className={`lb-tab-btn ${activeTab === 'classic' ? 'active' : ''}`}
             data-lb-mode="classic"
             id="lb-tab-classic"
-            onClick={() => setActiveTab('classic')}
+            onClick={() => {
+              haptics.menuTap();
+              setActiveTab('classic');
+            }}
           >
-            🏆 Rekor Klasik
+            🧱 Rekor Klasik
+          </button>
+          <button
+            className={`lb-tab-btn ${activeTab === 'sand' ? 'active' : ''}`}
+            data-lb-mode="sand"
+            id="lb-tab-sand"
+            onClick={() => {
+              haptics.menuTap();
+              setActiveTab('sand');
+            }}
+          >
+            ⏳ Sand Physics
           </button>
           <button
             className={`lb-tab-btn ${activeTab === 'daily' ? 'active' : ''}`}
             data-lb-mode="daily"
             id="lb-tab-daily"
-            onClick={() => setActiveTab('daily')}
+            onClick={() => {
+              haptics.menuTap();
+              setActiveTab('daily');
+            }}
           >
             📅 Juara Harian
           </button>
@@ -125,11 +143,21 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
           <button
             id="refresh-leaderboard-btn"
             className="candy-btn-secondary"
-            onClick={() => loadScores(activeTab)}
+            onClick={() => {
+              haptics.menuTap();
+              loadScores(activeTab);
+            }}
           >
             🔄 Refresh
           </button>
-          <button id="close-leaderboard-btn" className="play-big-btn" onClick={onClose}>
+          <button
+            id="close-leaderboard-btn"
+            className="play-big-btn"
+            onClick={() => {
+              haptics.menuTap();
+              onClose();
+            }}
+          >
             Tutup ✨
           </button>
         </div>

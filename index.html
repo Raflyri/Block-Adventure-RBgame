@@ -1,6 +1,28 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function() {
+        try {
+          var originalFetch = window.fetch;
+          if (originalFetch) {
+            var currentFetch = originalFetch.bind(window);
+            Object.defineProperty(window, 'fetch', {
+              configurable: true,
+              enumerable: true,
+              get: function() {
+                return currentFetch;
+              },
+              set: function(val) {
+                currentFetch = val;
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Fetch setter shim error:', e);
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta
       name="viewport"

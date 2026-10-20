@@ -187,6 +187,27 @@ export class ParticleSystem {
       });
     }
   }
+
+  spawnLineClearSparkle(x: number, y: number, color: string) {
+    for (let i = 0; i < 3; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 3.5;
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 6,
+        y: y + (Math.random() - 0.5) * 6,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        gravity: 0.1,
+        size: 2 + Math.random() * 3,
+        color,
+        alpha: 1.0,
+        decay: 0.03 + Math.random() * 0.03,
+        rotation: Math.random() * Math.PI,
+        rotSpeed: (Math.random() - 0.5) * 0.2,
+        isDebris: false
+      });
+    }
+  }
 }
 
 export const particles = new ParticleSystem();

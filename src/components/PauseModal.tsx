@@ -1,9 +1,11 @@
 import React from 'react';
+import { haptics } from '../services/haptics';
 
 interface PauseModalProps {
   isOpen: boolean;
   onResume: () => void;
   onRestart: () => void;
+  onOpenSettings: () => void;
   onMainMenu: () => void;
 }
 
@@ -11,6 +13,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
   isOpen,
   onResume,
   onRestart,
+  onOpenSettings,
   onMainMenu
 }) => {
   if (!isOpen) return null;
@@ -24,20 +27,43 @@ export const PauseModal: React.FC<PauseModalProps> = ({
           Take a little breather! Your blocks are resting safely.
         </p>
         <div className="modal-actions">
-          <button id="resume-game-btn" className="play-big-btn" onClick={onResume}>
+          <button
+            id="resume-game-btn"
+            className="play-big-btn"
+            onClick={() => {
+              haptics.menuTap();
+              onResume();
+            }}
+          >
             CONTINUE! ▶️
+          </button>
+          <button
+            id="settings-from-pause-btn"
+            className="candy-btn-secondary"
+            onClick={() => {
+              haptics.menuTap();
+              onOpenSettings();
+            }}
+          >
+            SETTINGS ⚙️
           </button>
           <button
             id="restart-from-pause-btn"
             className="candy-btn-secondary"
-            onClick={onRestart}
+            onClick={() => {
+              haptics.menuTap();
+              onRestart();
+            }}
           >
             TRY AGAIN 🔄
           </button>
           <button
             id="menu-from-pause-btn"
             className="candy-btn-secondary"
-            onClick={onMainMenu}
+            onClick={() => {
+              haptics.menuTap();
+              onMainMenu();
+            }}
           >
             MAIN MENU 🏠
           </button>

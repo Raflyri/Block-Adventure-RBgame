@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameModeType } from '../types/game';
 import { PUZZLE_STAGES } from '../constants/game';
+import { haptics } from '../services/haptics';
 
 interface StartModalProps {
   isOpen: boolean;
@@ -11,6 +12,11 @@ interface StartModalProps {
   onSelectMode: (mode: GameModeType) => void;
   onSelectStage: (stage: number) => void;
   onStartGame: () => void;
+  onOpenSettings: () => void;
+  gameMode?: 'classic' | 'sand';
+  onSelectGameMode?: (mode: 'classic' | 'sand') => void;
+  bestScoreClassic?: number;
+  bestScoreSand?: number;
 }
 
 export const StartModal: React.FC<StartModalProps> = ({
@@ -21,7 +27,12 @@ export const StartModal: React.FC<StartModalProps> = ({
   dailyStreak,
   onSelectMode,
   onSelectStage,
-  onStartGame
+  onStartGame,
+  onOpenSettings,
+  gameMode = 'classic',
+  onSelectGameMode,
+  bestScoreClassic = 0,
+  bestScoreSand = 0
 }) => {
   if (!isOpen) return null;
 
@@ -43,13 +54,98 @@ export const StartModal: React.FC<StartModalProps> = ({
           Ready to Play?
         </h2>
 
+        {/* Dual Mode Selector Card (Classic Block vs Sand Physics) */}
+        <div className="mb-4 text-left" style={{ width: '100%', marginBottom: '16px' }}>
+          <label className="block text-xs font-bold uppercase tracking-wider text-purple-300 mb-2 text-center" style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#d8b4fe', marginBottom: '8px', textAlign: 'center' }}>
+            Pilih Mode Permainan
+          </label>
+          <div className="grid grid-cols-2 gap-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                haptics.menuTap();
+                onSelectGameMode?.('classic');
+              }}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                gameMode === 'classic'
+                  ? 'border-amber-400 bg-amber-500/20 shadow-lg shadow-amber-500/10'
+                  : 'border-white/10 bg-white/5 hover:bg-white/10'
+              }`}
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                border: gameMode === 'classic' ? '2px solid #fbbf24' : '2px solid rgba(255, 255, 255, 0.12)',
+                backgroundColor: gameMode === 'classic' ? 'rgba(245, 158, 11, 0.22)' : 'rgba(255, 255, 255, 0.05)',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <div className="flex items-center justify-between mb-1" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span className="text-lg" style={{ fontSize: '18px' }}>🧱</span>
+                {gameMode === 'classic' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950" style={{ fontSize: '10px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#fbbf24', color: '#020617' }}>
+                    AKTIF
+                  </span>
+                )}
+              </div>
+              <div className="font-bold text-sm text-white" style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>Classic Block</div>
+              <div className="text-[11px] text-purple-200/80 leading-tight mt-0.5" style={{ fontSize: '11px', color: 'rgba(233, 213, 255, 0.8)', lineHeight: 1.25, marginTop: '2px' }}>
+                Susun balok permen klasik & ratakan baris penuh.
+              </div>
+              <div className="mt-2 text-[11px] font-semibold text-amber-300" style={{ marginTop: '8px', fontSize: '11px', fontWeight: 600, color: '#fcd34d' }}>
+                🏆 Best: {bestScoreClassic.toLocaleString()}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                haptics.menuTap();
+                onSelectGameMode?.('sand');
+              }}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                gameMode === 'sand'
+                  ? 'border-cyan-400 bg-cyan-500/20 shadow-lg shadow-cyan-500/10'
+                  : 'border-white/10 bg-white/5 hover:bg-white/10'
+              }`}
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                border: gameMode === 'sand' ? '2px solid #22d3ee' : '2px solid rgba(255, 255, 255, 0.12)',
+                backgroundColor: gameMode === 'sand' ? 'rgba(6, 182, 212, 0.22)' : 'rgba(255, 255, 255, 0.05)',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <div className="flex items-center justify-between mb-1" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span className="text-lg" style={{ fontSize: '18px' }}>⏳</span>
+                {gameMode === 'sand' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950" style={{ fontSize: '10px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#22d3ee', color: '#020617' }}>
+                    BARU
+                  </span>
+                )}
+              </div>
+              <div className="font-bold text-sm text-white" style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>Sand Physics</div>
+              <div className="text-[11px] text-purple-200/80 leading-tight mt-0.5" style={{ fontSize: '11px', color: 'rgba(233, 213, 255, 0.8)', lineHeight: 1.25, marginTop: '2px' }}>
+                Balok meleleh jadi pasir! Hubungkan warna kiri ke kanan.
+              </div>
+              <div className="mt-2 text-[11px] font-semibold text-cyan-300" style={{ marginTop: '8px', fontSize: '11px', fontWeight: 600, color: '#67e8f9' }}>
+                🏆 Best: {bestScoreSand.toLocaleString()}
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Game Mode Switcher Tabs */}
         <div className="mode-tabs-container">
           <button
             className={`mode-tab-btn ${selectedMode === 'classic' ? 'active' : ''}`}
             data-mode="classic"
             id="tab-classic"
-            onClick={() => onSelectMode('classic')}
+            onClick={() => {
+              haptics.menuTap();
+              onSelectMode('classic');
+            }}
           >
             🎮 Klasik
           </button>
@@ -57,7 +153,10 @@ export const StartModal: React.FC<StartModalProps> = ({
             className={`mode-tab-btn ${selectedMode === 'daily' ? 'active' : ''}`}
             data-mode="daily"
             id="tab-daily"
-            onClick={() => onSelectMode('daily')}
+            onClick={() => {
+              haptics.menuTap();
+              onSelectMode('daily');
+            }}
           >
             📅 Daily
           </button>
@@ -65,7 +164,10 @@ export const StartModal: React.FC<StartModalProps> = ({
             className={`mode-tab-btn ${selectedMode === 'puzzle' ? 'active' : ''}`}
             data-mode="puzzle"
             id="tab-puzzle"
-            onClick={() => onSelectMode('puzzle')}
+            onClick={() => {
+              haptics.menuTap();
+              onSelectMode('puzzle');
+            }}
           >
             🧩 Puzzle
           </button>
@@ -109,7 +211,10 @@ export const StartModal: React.FC<StartModalProps> = ({
                         className={`stage-num-btn ${isSelected ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
                         title={`Stage ${stg.id}: ${stg.name}`}
                         disabled={isLocked}
-                        onClick={() => onSelectStage(stg.id)}
+                        onClick={() => {
+                          haptics.menuTap();
+                          onSelectStage(stg.id);
+                        }}
                       >
                         {isLocked ? '🔒' : stg.id}
                       </button>
@@ -160,8 +265,28 @@ export const StartModal: React.FC<StartModalProps> = ({
           </div>
         </div>
 
-        <button id="start-game-btn" className="play-big-btn wobble-hover" onClick={onStartGame}>
+        <button
+          id="start-game-btn"
+          className="play-big-btn wobble-hover"
+          onClick={() => {
+            haptics.menuTap();
+            onStartGame();
+          }}
+        >
           LET'S PLAY! 🚀
+        </button>
+
+        <button
+          type="button"
+          id="open-settings-from-start-btn"
+          className="candy-btn-secondary"
+          style={{ width: '100%', marginTop: '4px' }}
+          onClick={() => {
+            haptics.menuTap();
+            onOpenSettings();
+          }}
+        >
+          ⚙️ Pengaturan Kontrol & Sensitivitas Swipe
         </button>
       </div>
     </div>

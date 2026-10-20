@@ -1,7 +1,91 @@
 import { COLS, ROWS, BASE_TETROMINOES, THEMES } from '../constants/game';
-import { ActivePiece, ThemeId } from '../types/game';
+import { ActivePiece, ThemeId, SandGridState } from '../types/game';
+
+// Offscreen buffer singleton untuk merender piksel pasir tanpa alokasi memori berulang
+let sandOffscreenCanvas: HTMLCanvasElement | null = null;
+let sandOffscreenCtx: CanvasRenderingContext2D | null = null;
+let sandImageData: ImageData | null = null;
+let sandUint32Buffer: Uint32Array | null = null;
+
+function ensureSandBuffer(width: number, height: number) {
+  if (
+    !sandOffscreenCanvas ||
+    sandOffscreenCanvas.width !== width ||
+    sandOffscreenCanvas.height !== height
+  ) {
+    sandOffscreenCanvas = document.createElement('canvas');
+    sandOffscreenCanvas.width = width;
+    sandOffscreenCanvas.height = height;
+    sandOffscreenCtx = sandOffscreenCanvas.getContext('2d');
+    if (sandOffscreenCtx) {
+      sandImageData = sandOffscreenCtx.createImageData(width, height);
+      sandUint32Buffer = new Uint32Array(sandImageData.data.buffer);
+    }
+  }
+}
+
+/**
+ * Konversi warna Hex (#RRGGBB) menjadi array [R, G, B]
+ */
+function hexToRgb(hex: string): [number, number, number] {
+  const clean = hex.replace('#', '');
+  const num = parseInt(clean, 16);
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+/**
+ * Merender seluruh butir pasir ke main canvas dengan kecepatan tinggi (ImageData).
+ */
+export function renderSandGrid(
+  ctx: CanvasRenderingContext2D,
+  sandGrid: SandGridState,
+  canvasWidth: number,
+  canvasHeight: number,
+  colorIdToHex: Record<number, string>
+): void {
+  const { width, height, cells, shade } = sandGrid;
+  ensureSandBuffer(width, height);
+
+  if (!sandOffscreenCtx || !sandImageData || !sandUint32Buffer || !sandOffscreenCanvas) {
+    return;
+  }
+
+  // Pre-compute RGB per colorId (1..8) untuk lookup instan di dalam loop
+  const rgbLUT: [number, number, number][] = [[0, 0, 0]];
+  for (let id = 1; id <= 8; id++) {
+    rgbLUT[id] = hexToRgb(colorIdToHex[id] || '#ffffff');
+  }
+
+  const totalCells = width * height;
+  for (let i = 0; i < totalCells; i++) {
+    const colorId = cells[i];
+    if (colorId === 0) {
+      sandUint32Buffer[i] = 0x00000000; // Transparan penuh
+      continue;
+    }
+
+    const [r, g, b] = rgbLUT[colorId] || [255, 255, 255];
+    const s = shade[i] / 255; // Faktor kilau tekstur permen/pasir (0.7 - 1.0)
+
+    const rr = (r * s) | 0;
+    const gg = (g * s) | 0;
+    const bb = (b * s) | 0;
+
+    // Format Little-Endian ABGR untuk Uint32Array ImageData
+    sandUint32Buffer[i] = (255 << 24) | (bb << 16) | (gg << 8) | rr;
+  }
+
+  sandOffscreenCtx.putImageData(sandImageData, 0, 0);
+
+  // Gambar ke canvas utama dengan pixel-art crisp scaling
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sandOffscreenCanvas, 0, 0, canvasWidth, canvasHeight);
+  ctx.restore();
+}
 
 export class CanvasRenderer {
+  static renderSandGrid = renderSandGrid;
   static drawRoundedRect(
     ctx: CanvasRenderingContext2D,
     x: number,
